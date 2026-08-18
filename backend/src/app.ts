@@ -5,6 +5,8 @@ import { config } from './config/env';
 import { checkDbConnection } from './db';
 import { redis } from './config/redis';
 
+import authRoutes from './routes/auth.routes';
+
 export const createApp = (): Express => {
   const app = express();
 
@@ -16,6 +18,9 @@ export const createApp = (): Express => {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
+
+  // Mount routes
+  app.use('/api/auth', authRoutes);
 
   // Health check endpoint
   app.get('/api/health', async (req: Request, res: Response) => {
