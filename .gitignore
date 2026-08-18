@@ -35,7 +35,11 @@ pnpm-debug.log*
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
-.idea/
-.vscode/
+# TypeScript build info
+*.tsbuildinfo
+
+# Vercel & Turbo
+.vercel
+.turbo
+
 *.local

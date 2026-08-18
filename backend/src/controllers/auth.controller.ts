@@ -44,11 +44,11 @@ export class AuthController {
       // 4. Generate session token
       const token = AuthService.generateSessionToken(user);
 
-      // 5. Set secure HttpOnly cookie
+      // 5. Set secure HttpOnly cookie (sameSite: 'none' in production supports cross-domain Vercel/Railway setups)
       res.cookie('reachinbox_token', token, {
         httpOnly: true,
         secure: config.nodeEnv === 'production',
-        sameSite: 'lax',
+        sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         path: '/',
       });
@@ -63,16 +63,16 @@ export class AuthController {
 
   /**
    * GET /api/auth/me
-   * Returns current authenticated user
+   * Returns authenticated user profile
    */
   static async getMe(req: Request, res: Response): Promise<void> {
-    if (!req.user) {
-      res.status(401).json({ error: 'Not authenticated' });
-      return;
-    }
-
     try {
-      const user = await AuthService.findUserById(req.user.id);
+      if (!req.user) {
+        res.status(401).json({ error: 'Not authenticated' });
+        return;
+      }
+
+      const user = await AuthService.getUserById(req.user.id);
       if (!user) {
         res.status(404).json({ error: 'User not found' });
         return;
@@ -100,7 +100,7 @@ export class AuthController {
     res.clearCookie('reachinbox_token', {
       httpOnly: true,
       secure: config.nodeEnv === 'production',
-      sameSite: 'lax',
+      sameSite: config.nodeEnv === 'production' ? 'none' : 'lax',
       path: '/',
     });
 
