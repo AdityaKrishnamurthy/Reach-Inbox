@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { fetchApi } from '@/lib/api';
-import { Clock, Send, ChevronDown, LogOut, Plus, User as UserIcon } from 'lucide-react';
+import { Clock, Send, Archive, Trash2, ChevronDown, LogOut, Plus, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 
 export const Sidebar: React.FC = () => {
@@ -43,6 +43,8 @@ export const Sidebar: React.FC = () => {
 
   const isScheduledActive = pathname === '/dashboard' || pathname === '/dashboard/scheduled';
   const isSentActive = pathname === '/dashboard/sent';
+  const isArchivedActive = pathname === '/dashboard/archived';
+  const isTrashActive = pathname === '/dashboard/trash';
 
   return (
     <aside className="w-64 min-w-[256px] h-screen bg-white border-r border-gray-200 flex flex-col justify-between select-none">
@@ -175,6 +177,36 @@ export const Sidebar: React.FC = () => {
             >
               {counts.sent}
             </span>
+          </Link>
+
+          {/* Archived Nav */}
+          <Link
+            href="/dashboard/archived"
+            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              isArchivedActive
+                ? 'bg-[#E8F5E9] text-[#166534]'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Archive className={`w-4 h-4 ${isArchivedActive ? 'text-[#166534]' : 'text-gray-400'}`} />
+              <span>Archived</span>
+            </div>
+          </Link>
+
+          {/* Trash Nav */}
+          <Link
+            href="/dashboard/trash"
+            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              isTrashActive
+                ? 'bg-[#E8F5E9] text-[#166534]'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Trash2 className={`w-4 h-4 ${isTrashActive ? 'text-[#166534]' : 'text-gray-400'}`} />
+              <span>Trash</span>
+            </div>
           </Link>
         </div>
       </div>

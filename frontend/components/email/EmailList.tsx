@@ -20,6 +20,9 @@ interface EmailListProps {
   onRetry?: () => void;
   actionText?: string;
   actionHref?: string;
+  onUnarchive?: (id: string) => void;
+  onRestore?: (id: string) => void;
+  onPermanentDelete?: (id: string) => void;
 }
 
 export const EmailList: React.FC<EmailListProps> = ({
@@ -36,6 +39,9 @@ export const EmailList: React.FC<EmailListProps> = ({
   onRetry,
   actionText,
   actionHref,
+  onUnarchive,
+  onRestore,
+  onPermanentDelete,
 }) => {
   if (loading) {
     return <LoadingState rows={8} />;
@@ -78,7 +84,14 @@ export const EmailList: React.FC<EmailListProps> = ({
       {/* Email Rows List */}
       <div className="divide-y divide-gray-100">
         {emails.map((email) => (
-          <EmailListRow key={email.id} email={email} searchQuery={searchQuery} />
+          <EmailListRow
+            key={email.id}
+            email={email}
+            searchQuery={searchQuery}
+            onUnarchive={onUnarchive}
+            onRestore={onRestore}
+            onPermanentDelete={onPermanentDelete}
+          />
         ))}
       </div>
 

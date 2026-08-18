@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Clock, AlertCircle, RefreshCw, Ban } from 'lucide-react';
 
 interface ScheduledBadgeProps {
   timestamp: string | Date;
@@ -54,6 +54,15 @@ export const ProcessingBadge: React.FC = () => {
   );
 };
 
+export const CancelledBadge: React.FC = () => {
+  return (
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500 border border-gray-200">
+      <Ban className="w-3 h-3 text-gray-400" />
+      <span>Cancelled</span>
+    </span>
+  );
+};
+
 export const EmailStatusBadge: React.FC<{
   status: string;
   scheduledAt?: string | Date;
@@ -68,6 +77,8 @@ export const EmailStatusBadge: React.FC<{
       return <FailedBadge reason={failureReason} />;
     case 'processing':
       return <ProcessingBadge />;
+    case 'cancelled':
+      return <CancelledBadge />;
     default:
       return <span className="text-xs text-gray-500">{status}</span>;
   }

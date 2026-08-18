@@ -6,7 +6,7 @@ import { EmailRowData } from '@/components/email/EmailListRow';
 import { FilterOptions } from '@/components/layout/DashboardHeader';
 
 interface UseEmailListOptions {
-  endpoint: '/api/emails/scheduled' | '/api/emails/sent';
+  endpoint: '/api/emails/scheduled' | '/api/emails/sent' | '/api/emails/archived' | '/api/emails/trash';
   defaultSort: 'asc' | 'desc';
 }
 

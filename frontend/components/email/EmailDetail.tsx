@@ -8,11 +8,16 @@ import {
   ExternalLink,
   Mail,
   ChevronDown,
+  Archive,
+  ArchiveRestore,
+  Trash2,
+  RotateCcw,
 } from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
 import { useAuth } from '@/lib/auth-context';
 import Image from 'next/image';
 import { isEmailStarred, toggleEmailStar } from '@/lib/starred';
+import { fetchApi } from '@/lib/api';
 
 export interface EmailDetailData {
   id: string;
@@ -27,6 +32,8 @@ export interface EmailDetailData {
   etherealPreviewUrl: string | null;
   attempts: number;
   idempotencyKey: string;
+  isArchived: boolean;
+  isDeleted: boolean;
   delayMs: number;
   hourlyLimit: number;
   senderName: string;
@@ -43,6 +50,8 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
   const { user } = useAuth();
   const [isStarred, setIsStarred] = useState(false);
   const [showRecipientDetails, setShowRecipientDetails] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+  const [isActionPending, setIsActionPending] = useState(false);
 
   useEffect(() => {
     setIsStarred(isEmailStarred(email.id));
@@ -73,6 +82,56 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
   const handleToggleStar = () => {
     const newState = toggleEmailStar(email.id);
     setIsStarred(newState);
+  };
+
+  const runAction = async (
+    action: () => Promise<unknown>,
+    successMessage: string,
+    fallbackListPath: string
+  ) => {
+    if (isActionPending) return;
+    setIsActionPending(true);
+    setActionNotice(null);
+    try {
+      await action();
+      setActionNotice(successMessage);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('reachinbox:refresh-counts'));
+      }
+      setTimeout(() => {
+        if (typeof window !== 'undefined' && window.history.length > 1) {
+          router.back();
+        } else {
+          router.push(fallbackListPath);
+        }
+      }, 900);
+    } catch (err: any) {
+      setActionNotice(err.message || 'Action failed. Please try again.');
+      setIsActionPending(false);
+    }
+  };
+
+  const defaultListPath = email.status === 'sent' || email.status === 'failed' ? '/dashboard/sent' : '/dashboard/scheduled';
+
+  const handleArchive = () =>
+    runAction(() => fetchApi(`/api/emails/${email.id}/archive`, { method: 'PATCH' }), 'Email archived.', defaultListPath);
+
+  const handleUnarchive = () =>
+    runAction(() => fetchApi(`/api/emails/${email.id}/unarchive`, { method: 'PATCH' }), 'Email moved out of archive.', '/dashboard/archived');
+
+  const handleDelete = () =>
+    runAction(() => fetchApi(`/api/emails/${email.id}`, { method: 'DELETE' }), 'Email moved to trash.', defaultListPath);
+
+  const handleRestore = () =>
+    runAction(() => fetchApi(`/api/emails/${email.id}/restore`, { method: 'PATCH' }), 'Email restored.', '/dashboard/trash');
+
+  const handlePermanentDelete = () => {
+    if (!window.confirm('Permanently delete this email? This cannot be undone.')) return;
+    runAction(
+      () => fetchApi(`/api/emails/${email.id}/permanent`, { method: 'DELETE' }),
+      'Email permanently deleted.',
+      '/dashboard/trash'
+    );
   };
 
   const formattedDate = (dateStr: string) => {
@@ -138,19 +197,78 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
             </a>
           )}
 
-          {/* Star Action */}
-          <button
-            type="button"
-            onClick={handleToggleStar}
-            className={`p-2 rounded-full transition-colors ${
-              isStarred
-                ? 'text-amber-400 hover:text-amber-500 bg-amber-50'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-            }`}
-            title={isStarred ? 'Unstar' : 'Star'}
-          >
-            <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
-          </button>
+          {/* Star Action (hidden for trashed emails, matching the list view) */}
+          {!email.isDeleted && (
+            <button
+              type="button"
+              onClick={handleToggleStar}
+              className={`p-2 rounded-full transition-colors ${
+                isStarred
+                  ? 'text-amber-400 hover:text-amber-500 bg-amber-50'
+                  : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+              }`}
+              title={isStarred ? 'Unstar' : 'Star'}
+            >
+              <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
+            </button>
+          )}
+
+          {/* Archive / Unarchive Action */}
+          {email.isDeleted ? null : email.isArchived ? (
+            <button
+              type="button"
+              onClick={handleUnarchive}
+              disabled={isActionPending}
+              className="p-2 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+              title="Unarchive"
+            >
+              <ArchiveRestore className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleArchive}
+              disabled={isActionPending}
+              className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
+              title="Archive"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Delete / Restore / Delete Forever Action */}
+          {email.isDeleted ? (
+            <>
+              <button
+                type="button"
+                onClick={handleRestore}
+                disabled={isActionPending}
+                className="p-2 rounded-full text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50"
+                title="Restore"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handlePermanentDelete}
+                disabled={isActionPending}
+                className="p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                title="Delete forever"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isActionPending}
+              className="p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
 
           <div className="w-[1px] h-5 bg-gray-200 mx-1" />
 
@@ -170,6 +288,12 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
           )}
         </div>
       </div>
+
+      {actionNotice && (
+        <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs">
+          {actionNotice}
+        </div>
+      )}
 
       {/* Sender / Recipient Metadata Card */}
       <div className="flex items-start justify-between py-2">

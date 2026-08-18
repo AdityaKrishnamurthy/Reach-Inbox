@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Star, ExternalLink } from 'lucide-react';
+import { Star, ExternalLink, ArchiveRestore, Trash2, RotateCcw } from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
 import { isEmailStarred, toggleEmailStar } from '@/lib/starred';
 
@@ -24,6 +24,10 @@ export interface EmailRowData {
 interface EmailListRowProps {
   email: EmailRowData;
   searchQuery?: string;
+  /** Row-level actions for the Archived/Trash views (omit for the default Scheduled/Sent lists) */
+  onUnarchive?: (id: string) => void;
+  onRestore?: (id: string) => void;
+  onPermanentDelete?: (id: string) => void;
 }
 
 const HighlightMatch: React.FC<{ text: string; query?: string }> = ({ text, query }) => {
@@ -48,7 +52,13 @@ const HighlightMatch: React.FC<{ text: string; query?: string }> = ({ text, quer
   );
 };
 
-export const EmailListRow: React.FC<EmailListRowProps> = ({ email, searchQuery = '' }) => {
+export const EmailListRow: React.FC<EmailListRowProps> = ({
+  email,
+  searchQuery = '',
+  onUnarchive,
+  onRestore,
+  onPermanentDelete,
+}) => {
   const [isStarred, setIsStarred] = useState(false);
 
   useEffect(() => {
@@ -76,6 +86,26 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({ email, searchQuery =
 
   const handlePreviewClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+  };
+
+  const handleUnarchiveClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onUnarchive?.(email.id);
+  };
+
+  const handleRestoreClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onRestore?.(email.id);
+  };
+
+  const handlePermanentDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (window.confirm('Permanently delete this email? This cannot be undone.')) {
+      onPermanentDelete?.(email.id);
+    }
   };
 
   const cleanBodyPreview = email.bodyPreview ? email.bodyPreview.replace(/<[^>]*>?/gm, ' ') : '';
@@ -143,17 +173,56 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({ email, searchQuery =
           </a>
         )}
 
-        {/* Star Icon */}
-        <button
-          type="button"
-          onClick={handleStarClick}
-          aria-label={isStarred ? 'Unstar email' : 'Star email'}
-          className={`p-1 rounded transition-colors ${
-            isStarred ? 'text-amber-400 hover:text-amber-500' : 'text-gray-300 hover:text-gray-500'
-          }`}
-        >
-          <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
-        </button>
+        {/* Star Icon (hidden in Archived/Trash rows to keep those actions focused) */}
+        {!onUnarchive && !onRestore && (
+          <button
+            type="button"
+            onClick={handleStarClick}
+            aria-label={isStarred ? 'Unstar email' : 'Star email'}
+            className={`p-1 rounded transition-colors ${
+              isStarred ? 'text-amber-400 hover:text-amber-500' : 'text-gray-300 hover:text-gray-500'
+            }`}
+          >
+            <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
+          </button>
+        )}
+
+        {/* Archived-view action */}
+        {onUnarchive && (
+          <button
+            type="button"
+            onClick={handleUnarchiveClick}
+            aria-label="Unarchive"
+            title="Unarchive"
+            className="p-1 rounded text-gray-400 hover:text-emerald-600 transition-colors"
+          >
+            <ArchiveRestore className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Trash-view actions */}
+        {onRestore && (
+          <button
+            type="button"
+            onClick={handleRestoreClick}
+            aria-label="Restore"
+            title="Restore"
+            className="p-1 rounded text-gray-400 hover:text-emerald-600 transition-colors"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+        )}
+        {onPermanentDelete && (
+          <button
+            type="button"
+            onClick={handlePermanentDeleteClick}
+            aria-label="Delete forever"
+            title="Delete forever"
+            className="p-1 rounded text-gray-400 hover:text-red-600 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
