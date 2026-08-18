@@ -56,13 +56,14 @@ export default function EmailDetailPage() {
           <span>{error || 'Email record not found'}</span>
         </div>
         <div>
-          <Link
-            href="/dashboard/scheduled"
+          <button
+            type="button"
+            onClick={() => router.back()}
             className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium rounded-md transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Scheduled</span>
-          </Link>
+            <span>Go Back</span>
+          </button>
         </div>
       </div>
     );

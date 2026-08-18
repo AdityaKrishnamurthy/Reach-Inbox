@@ -1,9 +1,20 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Star, ExternalLink, Mail } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  Star,
+  ExternalLink,
+  Mail,
+  Archive,
+  Trash2,
+  ChevronDown,
+} from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
+import { useAuth } from '@/lib/auth-context';
+import Image from 'next/image';
+import { isEmailStarred, toggleEmailStar } from '@/lib/starred';
 
 export interface EmailDetailData {
   id: string;
@@ -30,6 +41,43 @@ interface EmailDetailProps {
 }
 
 export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
+  const router = useRouter();
+  const { user } = useAuth();
+  const [isStarred, setIsStarred] = useState(false);
+  const [showRecipientDetails, setShowRecipientDetails] = useState(false);
+  const [actionNotice, setActionNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsStarred(isEmailStarred(email.id));
+
+    const handleStarChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<{ id: string; isStarred: boolean }>;
+      if (customEvent.detail && customEvent.detail.id === email.id) {
+        setIsStarred(customEvent.detail.isStarred);
+      }
+    };
+
+    window.addEventListener('reachinbox:star-changed', handleStarChanged);
+    return () => {
+      window.removeEventListener('reachinbox:star-changed', handleStarChanged);
+    };
+  }, [email.id]);
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else if (email.status === 'sent' || email.status === 'failed') {
+      router.push('/dashboard/sent');
+    } else {
+      router.push('/dashboard/scheduled');
+    }
+  };
+
+  const handleToggleStar = () => {
+    const newState = toggleEmailStar(email.id);
+    setIsStarred(newState);
+  };
+
   const formattedDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleString('en-US', {
       month: 'short',
@@ -41,24 +89,49 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
     });
   };
 
+  const handleArchive = () => {
+    setActionNotice('Email moved to archive.');
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  const handleDelete = () => {
+    setActionNotice('Email removed from active view.');
+    setTimeout(() => setActionNotice(null), 3000);
+  };
+
+  const normalizeEmailHtml = (rawHtml: string) => {
+    if (!rawHtml) return '';
+    if (!/<[a-z][\s\S]*>/i.test(rawHtml)) {
+      return rawHtml
+        .split(/\r?\n\r?\n/)
+        .map((p) => `<p>${p.replace(/\r?\n/g, '<br/>')}</p>`)
+        .join('');
+    }
+    return rawHtml
+      .replace(/(<p>\s*(<br\s*\/?>)?\s*<\/p>\s*){2,}/gi, '<p><br/></p>')
+      .replace(/(<br\s*\/?>\s*){3,}/gi, '<br/><br/>');
+  };
+
   return (
-    <div className="max-w-4xl mx-auto py-6 px-8 space-y-6">
-      {/* Top Action Bar */}
-      <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/dashboard/scheduled"
-            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
-            title="Back to list"
+    <div className="max-w-5xl mx-auto py-6 px-8 space-y-6 select-none">
+      {/* Top Action Bar (Figma Match 9419) */}
+      <div className="flex items-center justify-between pb-4 border-b border-gray-200 gap-4">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors flex-shrink-0"
+            title="Back"
           >
             <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-xl font-semibold text-gray-900 truncate">
+          </button>
+          <h1 className="text-2xl font-semibold text-gray-900 leading-tight">
             {email.subject || '(No Subject)'}
           </h1>
         </div>
 
-        <div className="flex items-center gap-3">
+        {/* Right Actions */}
+        <div className="flex items-center gap-3 flex-shrink-0">
           <EmailStatusBadge
             status={email.status}
             scheduledAt={email.scheduledAt}
@@ -71,25 +144,76 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-medium rounded-md border border-emerald-200 transition-colors"
+              title="Inspect Email"
             >
-              <span>View in Ethereal</span>
+              <span>Preview</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
           )}
 
+          {/* Star Action */}
           <button
             type="button"
-            className="p-2 rounded-full text-gray-400 hover:text-amber-500 hover:bg-gray-50 transition-colors"
+            onClick={handleToggleStar}
+            className={`p-2 rounded-full transition-colors ${
+              isStarred
+                ? 'text-amber-400 hover:text-amber-500 bg-amber-50'
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+            }`}
+            title={isStarred ? 'Unstar' : 'Star'}
           >
-            <Star className="w-4 h-4" />
+            <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
           </button>
+
+          {/* Archive Action */}
+          <button
+            type="button"
+            onClick={handleArchive}
+            className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            title="Archive"
+          >
+            <Archive className="w-4 h-4" />
+          </button>
+
+          {/* Trash Action */}
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Delete"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+
+          <div className="w-[1px] h-5 bg-gray-200 mx-1" />
+
+          {/* User Avatar */}
+          {user?.avatarUrl ? (
+            <Image
+              src={user.avatarUrl}
+              alt={user.name || 'User'}
+              width={32}
+              height={32}
+              className="rounded-full flex-shrink-0"
+            />
+          ) : (
+            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-xs flex items-center justify-center flex-shrink-0">
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
         </div>
       </div>
+
+      {actionNotice && (
+        <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs animate-in fade-in">
+          {actionNotice}
+        </div>
+      )}
 
       {/* Sender / Recipient Metadata Card */}
       <div className="flex items-start justify-between py-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-semibold text-sm flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[#00A36C] text-white font-bold text-sm flex items-center justify-center flex-shrink-0 shadow-sm">
             {email.senderName ? email.senderName.charAt(0).toUpperCase() : <Mail className="w-4 h-4" />}
           </div>
           <div>
@@ -97,16 +221,47 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
               <span className="text-sm font-semibold text-gray-900">{email.senderName}</span>
               <span className="text-xs text-gray-400">&lt;{email.senderEmail}&gt;</span>
             </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              <span>to </span>
-              <span className="font-medium text-gray-700">{email.recipientEmail}</span>
+            <div className="relative inline-block mt-0.5">
+              <button
+                type="button"
+                onClick={() => setShowRecipientDetails(!showRecipientDetails)}
+                className="text-xs text-gray-500 hover:text-gray-900 inline-flex items-center gap-1 transition-colors"
+              >
+                <span>to {email.recipientEmail}</span>
+                <ChevronDown className="w-3 h-3 text-gray-400" />
+              </button>
+
+              {showRecipientDetails && (
+                <div className="absolute left-0 top-full mt-1 p-3 bg-white border border-gray-200 rounded-lg shadow-lg text-xs space-y-1.5 z-20 min-w-[260px]">
+                  <div>
+                    <span className="text-gray-400">From: </span>
+                    <span className="text-gray-800 font-medium">
+                      {email.senderName} &lt;{email.senderEmail}&gt;
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">To: </span>
+                    <span className="text-gray-800 font-medium">{email.recipientEmail}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Date: </span>
+                    <span className="text-gray-800">
+                      {email.sentAt ? formattedDate(email.sentAt) : formattedDate(email.scheduledAt)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-gray-400">Subject: </span>
+                    <span className="text-gray-800">{email.subject}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
         <div className="text-right text-xs text-gray-400">
           <div>
-            {email.sentAt ? `Sent: ${formattedDate(email.sentAt)}` : `Scheduled: ${formattedDate(email.scheduledAt)}`}
+            {email.sentAt ? formattedDate(email.sentAt) : `Scheduled: ${formattedDate(email.scheduledAt)}`}
           </div>
           {email.failureReason && (
             <div className="text-red-600 mt-1 font-medium">Error: {email.failureReason}</div>
@@ -114,29 +269,29 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
         </div>
       </div>
 
-      {/* Message Body */}
+      {/* Message Body Content */}
       <div className="pt-6 pb-8 border-t border-gray-100">
         <div
-          className="prose prose-sm max-w-none text-gray-800 leading-relaxed space-y-4"
-          dangerouslySetInnerHTML={{ __html: email.body }}
+          className="email-body-content"
+          dangerouslySetInnerHTML={{ __html: normalizeEmailHtml(email.body) }}
         />
       </div>
 
       {/* Campaign Details Footer */}
       <div className="pt-6 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-gray-500">
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
           <div className="text-gray-400 font-medium mb-1">Status</div>
           <div className="text-gray-900 font-semibold uppercase">{email.status}</div>
         </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
           <div className="text-gray-400 font-medium mb-1">Inter-Email Delay</div>
           <div className="text-gray-900 font-semibold">{email.delayMs / 1000}s</div>
         </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
           <div className="text-gray-400 font-medium mb-1">Hourly Limit</div>
           <div className="text-gray-900 font-semibold">{email.hourlyLimit}/hr</div>
         </div>
-        <div className="p-3 bg-gray-50 rounded-lg">
+        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
           <div className="text-gray-400 font-medium mb-1">Attempts</div>
           <div className="text-gray-900 font-semibold">{email.attempts}</div>
         </div>

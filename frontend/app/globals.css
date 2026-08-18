@@ -12,3 +12,62 @@ body {
   background: rgb(var(--background-rgb));
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
+
+/* Natural email reader typography matching standard inbox flow */
+.email-body-content {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #1f2937;
+}
+
+.email-body-content p {
+  margin-top: 0;
+  margin-bottom: 0.85rem;
+}
+
+.email-body-content p:last-child {
+  margin-bottom: 0;
+}
+
+.email-body-content p > br:only-child {
+  display: block;
+  content: "";
+  margin-top: 0.25rem;
+}
+
+.email-body-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.email-body-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.email-body-content li {
+  margin-top: 0.2rem;
+  margin-bottom: 0.2rem;
+}
+
+.email-body-content blockquote {
+  border-left: 3px solid #00A36C;
+  padding-left: 0.875rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.85rem;
+  color: #4b5563;
+  font-style: italic;
+}
+
+.email-body-content a {
+  color: #00A36C;
+  text-decoration: underline;
+}
+
+.email-body-content a:hover {
+  color: #008f5d;
+}
