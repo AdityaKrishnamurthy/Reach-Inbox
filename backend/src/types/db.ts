@@ -43,13 +43,15 @@ export interface ScheduledEmail {
   campaign_id: string;
   recipient_email: string;
   scheduled_at: Date;
-  status: 'scheduled' | 'processing' | 'sent' | 'failed';
+  status: 'scheduled' | 'processing' | 'sent' | 'failed' | 'cancelled';
   bull_job_id: string | null;
   attempts: number;
   sent_at: Date | null;
   failure_reason: string | null;
   idempotency_key: string;
   ethereal_preview_url: string | null;
+  is_archived: boolean;
+  is_deleted: boolean;
   created_at: Date;
   updated_at: Date;
 }

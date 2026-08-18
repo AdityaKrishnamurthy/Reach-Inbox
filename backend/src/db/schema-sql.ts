@@ -82,11 +82,15 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
     failure_reason TEXT,
     ethereal_preview_url TEXT,
     idempotency_key VARCHAR(255) UNIQUE NOT NULL,
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE scheduled_emails ADD COLUMN IF NOT EXISTS bull_job_id VARCHAR(255);
+ALTER TABLE scheduled_emails ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE scheduled_emails ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN NOT NULL DEFAULT FALSE;
 
 DROP TRIGGER IF EXISTS trg_scheduled_emails_updated_at ON scheduled_emails;
 CREATE TRIGGER trg_scheduled_emails_updated_at
@@ -97,6 +101,8 @@ CREATE TRIGGER trg_scheduled_emails_updated_at
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_campaign_id ON scheduled_emails(campaign_id);
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status);
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_scheduled_at ON scheduled_emails(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_scheduled_emails_is_archived ON scheduled_emails(is_archived);
+CREATE INDEX IF NOT EXISTS idx_scheduled_emails_is_deleted ON scheduled_emails(is_deleted);
 CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON campaigns(user_id);
 CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
 `;

@@ -38,6 +38,21 @@ export const enqueueEmailJob = async (
 };
 
 /**
+ * Best-effort cancellation of a not-yet-processed job (used when a still-pending
+ * scheduled email is deleted). Safe to call even if the job already ran or was
+ * never enqueued - a missing job is not an error here.
+ */
+export const cancelEmailJob = async (jobId: string): Promise<void> => {
+  const job = await emailQueue.getJob(jobId);
+  if (job) {
+    const state = await job.getState();
+    if (state !== 'active' && state !== 'completed') {
+      await job.remove();
+    }
+  }
+};
+
+/**
  * Get queue metrics
  */
 export const getQueueStats = async () => {

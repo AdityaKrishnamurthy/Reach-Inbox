@@ -72,7 +72,7 @@ export class EmailWorker {
 
     // 1. Idempotency Check: Verify database state
     const dbEmailRes = await query<ScheduledEmail>(
-      'SELECT id, status, attempts FROM scheduled_emails WHERE id = $1',
+      'SELECT id, status, attempts, is_deleted FROM scheduled_emails WHERE id = $1',
       [scheduledEmailId]
     );
 
@@ -87,6 +87,16 @@ export class EmailWorker {
     if (emailRecord.status === 'sent') {
       console.log(`[Email Worker] Job ${job.id} already marked as 'sent'. Skipping duplicate.`);
       return { status: 'skipped', reason: 'already_sent' };
+    }
+
+    // Skip if deleted after being enqueued (best-effort job cancellation in
+    // EmailService.softDeleteEmail can miss a job that was already 'active')
+    if (emailRecord.is_deleted) {
+      console.log(`[Email Worker] Job ${job.id} was deleted. Skipping send.`);
+      if (emailRecord.status === 'scheduled' || emailRecord.status === 'processing') {
+        await query(`UPDATE scheduled_emails SET status = 'cancelled' WHERE id = $1`, [scheduledEmailId]);
+      }
+      return { status: 'skipped', reason: 'deleted' };
     }
 
     // 2. Distributed Rate Limiting & Inter-Email Delay
