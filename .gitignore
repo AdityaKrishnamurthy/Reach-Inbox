@@ -1,0 +1,41 @@
+# Assignment docs & plans (as requested)
+AGENTS.md
+plans/
+CLAUDE.md
+PRD.md
+DESIGN.md
+
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Build outputs
+.next/
+dist/
+build/
+out/
+coverage/
+
+# Environment files
+.env
+.env*.local
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor and OS
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.idea/
+.vscode/
+*.local
