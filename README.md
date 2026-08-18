@@ -4,7 +4,7 @@
 
 ### Full-Stack Email Job Scheduler & Dashboard
 
-A production-grade, durable cold-email scheduling system and dashboard built with **Next.js**, **Express.js**, **PostgreSQL**, **Redis**, **BullMQ**, and **Ethereal Email SMTP**.
+A cold-email scheduler and dashboard built with **Next.js**, **Express.js**, **PostgreSQL**, **Redis**, **BullMQ**, and **Ethereal Email SMTP**. Schedule emails, and they still get sent on time even if the server restarts.
 
 </div>
 
@@ -18,6 +18,7 @@ A production-grade, durable cold-email scheduling system and dashboard built wit
 4. [Deployment](#4-deployment)
 5. [Implemented Features Map](#5-implemented-features-map)
 6. [Assumptions & Trade-offs](#6-assumptions--trade-offs)
+7. [AI Usage & Architecture Note](#7-ai-usage--architecture-note)
 
 ---
 
@@ -83,11 +84,13 @@ WORKER_CONCURRENCY=5
 DEFAULT_HOURLY_LIMIT=50
 DEFAULT_DELAY_MS=2000
 
-# Ethereal Email Fake SMTP (leave blank to auto-generate ephemeral test accounts)
+# Ethereal Email Fake SMTP (leave user/pass blank to auto-generate ephemeral test accounts)
 SMTP_HOST=smtp.ethereal.email
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
+SMTP_FROM_NAME=ReachInbox Demo
+SMTP_FROM_EMAIL=demo@reachinbox.test
 
 # Frontend Environment Variable
 NEXT_PUBLIC_API_URL=http://localhost:5000
@@ -130,44 +133,44 @@ Or run each service in its own terminal:
 
 ### A. How Scheduling Works (Zero Cron)
 
-- When a user schedules a campaign via `POST /api/schedules`, the API calculates discrete execution timestamps for each recipient based on the start time and the configured **inter-email delay** (e.g., 2 seconds).
-- Each email record is inserted into the PostgreSQL `scheduled_emails` table in state `scheduled`.
-- The API enqueues a **BullMQ delayed job** into Redis with `delay = scheduledAt - now` and `jobId = scheduled_emails.id`.
-- **No cron jobs, `node-cron`, or polling loops** are used anywhere. Redis timers and BullMQ's internal delayed sorted sets manage precise execution triggers.
+- When a campaign is scheduled via `POST /api/schedules`, the API works out a send time for each recipient based on the start time and the **inter-email delay** (e.g. 2 seconds apart).
+- Each email is saved to the PostgreSQL `scheduled_emails` table with status `scheduled`.
+- The API then adds a **BullMQ delayed job** to Redis with `delay = scheduledAt - now` and `jobId = scheduled_emails.id`.
+- **No cron jobs, `node-cron`, or polling loops** anywhere — Redis and BullMQ's own delayed queue handle the timing.
 
 ### B. Persistence on Restart & Idempotency
 
 | Guarantee | How it's achieved |
 |---|---|
-| Restart persistence | Application state is committed to PostgreSQL and job metadata to Redis before dispatch, so stopping or restarting the server retains all pending jobs — BullMQ resumes existing delayed jobs at their scheduled times. |
-| Idempotent sending | Every job carries a deterministic idempotency key (`campaignId:recipientEmail`). Before sending, the worker verifies the database status is not already `sent`, preventing duplicate sends on retry. |
+| Restart persistence | Everything is written to PostgreSQL and Redis before the job is dispatched, so a server restart doesn't lose anything — BullMQ just picks the delayed jobs back up. |
+| Idempotent sending | Each job has a unique key (`campaignId:recipientEmail`). Before sending, the worker checks the DB isn't already marked `sent`, so retries can't double-send. |
 
 ### C. Rate Limiting & Concurrency
 
 | Mechanism | Behavior |
 |---|---|
-| Worker concurrency | Configurable via `WORKER_CONCURRENCY` (default `5`) — safely runs parallel job processors. |
-| Inter-email delay | A minimum pause between consecutive sends per sender, mimicking real ESP throttling (default `2s`). |
-| Distributed hourly quotas | Redis atomic keys (`ratelimit:sender:{id}:hour:{YYYYMMDDHH}`) track sends per sender within the active UTC hour. |
-| Quota rollover | If a sender hits its hourly limit, the worker computes the time remaining until the next hour window and reschedules the job instead of failing or dropping it. |
+| Worker concurrency | Configurable via `WORKER_CONCURRENCY` (default `5`) — runs that many jobs in parallel. |
+| Inter-email delay | Minimum gap between sends per sender, mimicking real ESP throttling (default `2s`). |
+| Distributed hourly quotas | Redis counters (`ratelimit:sender:{id}:hour:{YYYYMMDDHH}`) track sends per sender for the current UTC hour. |
+| Quota rollover | If a sender hits its hourly limit, the job gets pushed to the next hour instead of failing or getting dropped. |
 
 ---
 
 ## 4. Deployment
 
-The application is split across managed platforms chosen for their generous free tiers, with the backend API and the BullMQ worker running as a single Node process to avoid paying for two separate services.
+The app runs on a few free-tier platforms, with the backend API and the BullMQ worker sharing a single Node process so we don't need two separate services.
 
 | Component | Platform | Role |
 |---|---|---|
 | Frontend | Vercel | Hosts the Next.js app on a custom subdomain |
-| Backend API + Worker | Render (Web Service) | One Node process serving the Express API and running the BullMQ worker in-process; runs database migrations automatically on boot |
-| PostgreSQL | Render Managed Database | Durable relational storage |
+| Backend API + Worker | Render (Web Service) | One Node process running the Express API and the BullMQ worker together; runs DB migrations automatically on boot |
+| PostgreSQL | Render Managed Database | Relational storage |
 | Redis | Upstash (Serverless, TLS) | BullMQ delayed job queue and rate-limit counters |
-| DNS | Custom domain, dedicated subdomain per service | Frontend and backend deliberately share the same root domain so auth cookies stay first-party across services |
-| Auth | Google OAuth 2.0 | Authorized JavaScript origins and redirect URIs configured per environment |
-| Uptime | External health-check pinger | Periodically hits the API's health endpoint to prevent the free-tier service from spinning down after inactivity |
+| DNS | Custom domain, one subdomain per service | Frontend and backend share the same root domain so auth cookies stay first-party |
+| Auth | Google OAuth 2.0 | Authorized JavaScript origins and redirect URIs set per environment |
+| Uptime | UptimeRobot | Pings the API's health endpoint every 5 minutes so the free-tier backend doesn't spin down from inactivity |
 
-Secrets (database URL, Redis URL, OAuth credentials, session secret) are configured entirely through each platform's environment variable dashboard and are never committed to source control.
+Secrets (database URL, Redis URL, OAuth credentials, session secret) live in each platform's environment variable dashboard, never in source control.
 
 ---
 
@@ -194,6 +197,12 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) are configu
 
 | # | Assumption / Trade-off | Rationale |
 |---|---|---|
-| 1 | Email Sandbox | Ethereal Email SMTP is used as required, for safe testing without dispatching real mail. A successful send generates a direct web preview link; if outbound SMTP is blocked by a local network firewall, an internal simulation fallback records delivery and renders the full email in the dashboard. |
-| 2 | Rate limit overflow | Exceeded hourly limits reschedule jobs into the next available hour window rather than dropping or rejecting them. |
-| 3 | Database & queue separation | PostgreSQL is the durable source of truth for email records and campaign analytics; Redis manages the high-throughput delayed execution queue. |
+| 1 | Email Sandbox | Ethereal Email SMTP is used as required, so no real mail ever goes out. A successful send gives you a preview link; if outbound SMTP is blocked by a local network/firewall, it falls back to a simulated send so the dashboard still shows the full email. |
+| 2 | Rate limit overflow | If the hourly limit is hit, jobs get pushed to the next hour window instead of being dropped or rejected. |
+| 3 | Database & queue separation | PostgreSQL is the source of truth for email records and campaigns; Redis just handles the delayed queue. |
+
+---
+
+## 7. AI Usage & Architecture Note
+
+Built using an AI-assisted spec-and-execution workflow: `PRD.md` and `DESIGN.md` set the requirements and visual scope up front, `AGENTS.md` governed how the agent worked (drift checks before each step, no silent fixes, one commit per completed milestone), and implementation followed numbered milestone plans (`plans/001`–`008`, tracked in `plans/PLANS.md`).
