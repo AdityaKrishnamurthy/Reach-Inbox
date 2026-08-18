@@ -52,5 +52,30 @@ export function runRecipientTests(): { name: string; passed: boolean; error?: st
     }
   });
 
+  test('Extracts only the email column from a multi-column CSV, ignoring metadata columns', () => {
+    const input =
+      'Email,Name,Company\nalex.morgan@example.com,Alex Morgan,Acme Corp\nsarah.connor@example.com,Sarah Connor,Cyberdyne';
+    const parsed = RecipientParser.parse(input);
+    if (parsed.validEmails.length !== 2) {
+      throw new Error(`Expected 2 emails, got ${parsed.validEmails.length}: ${JSON.stringify(parsed)}`);
+    }
+    if (!parsed.validEmails.includes('alex.morgan@example.com')) throw new Error('Missing alex.morgan');
+    if (!parsed.validEmails.includes('sarah.connor@example.com')) throw new Error('Missing sarah.connor');
+    if (parsed.invalidEntries.length !== 0) {
+      throw new Error(`Expected no invalid entries (Name/Company are metadata, not garbage), got: ${JSON.stringify(parsed.invalidEntries)}`);
+    }
+  });
+
+  test('Skips comment lines starting with # in plain text lists', () => {
+    const input = '# Marketing Lead Outreach List\nemma.watson@example.com\nbruce.wayne@example.com';
+    const parsed = RecipientParser.parse(input);
+    if (parsed.validEmails.length !== 2) {
+      throw new Error(`Expected 2 emails, got ${parsed.validEmails.length}: ${JSON.stringify(parsed)}`);
+    }
+    if (parsed.invalidEntries.length !== 0) {
+      throw new Error(`Expected the comment line to be skipped, not reported invalid: ${JSON.stringify(parsed.invalidEntries)}`);
+    }
+  });
+
   return results;
 }

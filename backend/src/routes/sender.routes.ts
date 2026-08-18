@@ -5,5 +5,6 @@ import { requireAuth } from '../middleware/auth';
 const router = Router();
 
 router.get('/', requireAuth, SenderController.listSenders);
+router.post('/', requireAuth, SenderController.createSender);
 
 export default router;

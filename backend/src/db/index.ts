@@ -25,10 +25,6 @@ export const query = async <T extends QueryResultRow = any>(
   return res;
 };
 
-export const getClient = async (): Promise<PoolClient> => {
-  return pool.connect();
-};
-
 export const withTransaction = async <T>(
   callback: (client: PoolClient) => Promise<T>
 ): Promise<T> => {

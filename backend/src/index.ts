@@ -2,6 +2,7 @@ import { createApp } from './app';
 import { config } from './config/env';
 import { startEmailWorker, stopEmailWorker } from './worker/email.worker';
 import { runMigrations } from './db/migrate';
+import { ScheduleService } from './services/schedule.service';
 
 const app = createApp();
 
@@ -16,6 +17,11 @@ const startServer = async () => {
       console.log(`Server listening on port ${config.port} in ${config.nodeEnv} mode`);
       // Start BullMQ email worker
       startEmailWorker();
+      // Re-enqueue any scheduled_emails rows that were persisted but never got a
+      // BullMQ job (crash/transient failure between DB commit and enqueue)
+      ScheduleService.reconcileOrphanedJobs().catch((err) => {
+        console.error('[Reconciliation Error]:', err.message);
+      });
     });
 
     const gracefulShutdown = async () => {

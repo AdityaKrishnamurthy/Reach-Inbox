@@ -1,5 +1,20 @@
 import { redis } from '../config/redis';
 
+// Atomically reserves the next allowed send slot: KEYS[1]=lastSendKey,
+// ARGV[1]=now(ms), ARGV[2]=delayMs, ARGV[3]=ttlSeconds. Returns the reserved
+// slot timestamp (ms). The caller must wait until that timestamp before sending.
+const RESERVE_SLOT_SCRIPT = `
+local lastReserved = tonumber(redis.call('GET', KEYS[1]))
+local now = tonumber(ARGV[1])
+local delayMs = tonumber(ARGV[2])
+local nextSlot = now
+if lastReserved and (lastReserved + delayMs) > now then
+  nextSlot = lastReserved + delayMs
+end
+redis.call('SET', KEYS[1], nextSlot, 'EX', ARGV[3])
+return nextSlot
+`;
+
 export interface SendSlotResult {
   allowed: boolean;
   retryAfterMs?: number;
@@ -74,23 +89,26 @@ export class RateLimitService {
       };
     }
 
-    // 2. Check minimum delay spacing
-    const lastSendStr = await redis.get(lastSendKey);
+    // 2. Atomically reserve the next available send slot for minimum delay spacing.
+    // A plain GET -> sleep -> SET is not atomic: concurrent workers for the same
+    // sender could all read the same lastSendKey before any of them writes an
+    // updated value, and all fire at once. This Lua script reserves a forward-only
+    // slot (now, or lastReservedSlot + delayMs, whichever is later) in one round
+    // trip, so concurrent callers serialize correctly instead of racing.
     const now = Date.now();
+    const nextSlot = (await redis.eval(
+      RESERVE_SLOT_SCRIPT,
+      1,
+      lastSendKey,
+      now,
+      delayMs,
+      86400
+    )) as number;
 
-    if (lastSendStr) {
-      const lastSend = parseInt(lastSendStr, 10);
-      const elapsed = now - lastSend;
-
-      if (elapsed < delayMs) {
-        // Minimum delay has not passed yet: wait the remainder
-        const waitMs = delayMs - elapsed;
-        await new Promise((resolve) => setTimeout(resolve, waitMs));
-      }
+    const waitMs = Math.max(0, nextSlot - now);
+    if (waitMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
     }
-
-    // Update last send timestamp with 24 hour TTL
-    await redis.set(lastSendKey, Date.now().toString(), 'EX', 86400);
 
     return {
       allowed: true,
