@@ -19,14 +19,18 @@ export const RecipientChips: React.FC<RecipientChipsProps> = ({
   const [inputValue, setInputValue] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const commitInput = () => {
+    const trimmed = inputValue.trim().replace(/^,+|,+$/g, '');
+    if (trimmed && trimmed.includes('@')) {
+      onAdd(trimmed.toLowerCase());
+      setInputValue('');
+    }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' || e.key === ',') {
+    if (e.key === 'Enter' || e.key === ',' || e.key === 'Tab' || e.key === ' ') {
       e.preventDefault();
-      const trimmed = inputValue.trim().replace(/^,|,$/g, '');
-      if (trimmed && trimmed.includes('@')) {
-        onAdd(trimmed.toLowerCase());
-        setInputValue('');
-      }
+      commitInput();
     } else if (e.key === 'Backspace' && !inputValue && recipients.length > 0) {
       onRemove(recipients[recipients.length - 1]);
     }
@@ -95,6 +99,7 @@ export const RecipientChips: React.FC<RecipientChipsProps> = ({
         type="email"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
+        onBlur={commitInput}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         placeholder={recipients.length === 0 ? 'Enter email addresses or paste list...' : 'Add more...'}

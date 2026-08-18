@@ -28,23 +28,25 @@ export const createApp = (): Express => {
   app.use('/api/emails', emailRoutes);
   app.use('/api/senders', senderRoutes);
 
-  // Health check endpoint
+  // Health check endpoint with fast timeouts
   app.get('/api/health', async (req: Request, res: Response) => {
-    let dbStatus = 'unknown';
-    let redisStatus = 'unknown';
+    let dbStatus = 'disconnected';
+    let redisStatus = 'disconnected';
+
+    const timeout = (ms: number) => new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms));
 
     try {
-      const dbOk = await checkDbConnection();
+      const dbOk = await Promise.race([checkDbConnection(), timeout(1000)]);
       dbStatus = dbOk ? 'connected' : 'disconnected';
     } catch {
-      dbStatus = 'error';
+      dbStatus = 'disconnected';
     }
 
     try {
-      const pingRes = await redis.ping();
+      const pingRes = await Promise.race([redis.ping(), timeout(1000)]);
       redisStatus = pingRes === 'PONG' ? 'connected' : 'disconnected';
     } catch {
-      redisStatus = 'error';
+      redisStatus = 'disconnected';
     }
 
     res.json({
