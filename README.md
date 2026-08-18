@@ -4,11 +4,11 @@ A production-grade, durable cold-email scheduling system and dashboard built wit
 
 ## 1. Tech Stack
 
+* **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons
 * **Backend**: Node.js, Express.js, TypeScript
 * **Queue / Scheduler**: BullMQ + Redis (**strictly zero cron jobs**)
 * **Database**: PostgreSQL 16 (Relational DB with connection pooling)
 * **SMTP Provider**: Ethereal Email (Fake SMTP sandbox for testing)
-* **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS, Lucide Icons
 * **Infrastructure**: Docker Compose (PostgreSQL & Redis)
 
 ## 2. Setup & How to Run
@@ -27,32 +27,44 @@ cp backend/.env.example backend/.env
 
 Configure your `.env` file:
 ```env
-# Server
+# Server Environment & Port
+NODE_ENV=development
 PORT=5000
+
+# Frontend URL (For CORS and OAuth redirects)
+# Local: http://localhost:3000
+# Production: https://reachinbox.adityak.tech
 FRONTEND_URL=http://localhost:3000
 
-# Database & Redis (Docker defaults)
+# Database Configuration (PostgreSQL 16)
+# Local: postgresql://postgres:postgres@localhost:5432/reachinbox
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/reachinbox
+
+# Redis Configuration (BullMQ Queue)
+# Local: redis://localhost:6379
 REDIS_URL=redis://localhost:6379
 
-# Google OAuth
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# Google OAuth 2.0 Credentials
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 
-# Session
-SESSION_SECRET=reachinbox_secret_key_32_characters_minimum
+# Session JWT Secret (32+ characters)
+SESSION_SECRET=reachinbox_secret_key_minimum_32_characters_long
 
-# Email Throttling & Concurrency Defaults
+# Worker & Queue Rate Limiting Defaults
 WORKER_CONCURRENCY=5
 DEFAULT_HOURLY_LIMIT=50
 DEFAULT_DELAY_MS=2000
 
-# Ethereal SMTP (Leave user/pass blank for auto-generated test accounts)
+# Ethereal Email Fake SMTP (Leave blank to auto-generate ephemeral test accounts)
 SMTP_HOST=smtp.ethereal.email
 SMTP_PORT=587
 SMTP_USER=
 SMTP_PASS=
+
+# Frontend Environment Variable
+NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
 > **Ethereal Setup Note:** If `SMTP_USER` and `SMTP_PASS` are left empty, the application automatically provisions an ephemeral Ethereal test account on the fly and generates test preview links.
@@ -104,20 +116,21 @@ Or run services in separate terminals:
 
 | Module | Assignment Requirement | Implementation Details |
 |---|---|---|
+| **Frontend** | Google Login UI | Figma-matched login screen with Google OAuth button and error toasts (`/login`). |
+| **Frontend** | Navigation & Dashboard | Sidebar with real-time Scheduled/Sent counters, user avatar card, and primary green branding (`/dashboard/*`). |
+| **Frontend** | Scheduled & Sent Tables | Status badges (`[Tue 9:15:12 AM]`, `sent`, `failed`), Ethereal preview links, search highlighting, and star affordances. |
+| **Frontend** | Compose & Send Later | Rich-text editor toolbar, sender dropdown, delay & hourly limit controls, drag-and-drop upload, and Send Later popover with presets. |
+| **Frontend** | Recipient Upload | CSV and TXT file uploader with regex parsing, deduplication, and detected count badges (`✓ N detected`). |
+| **Frontend** | Search & Filter Popover | Debounced multi-field search (recipient, subject, body, sender) with interactive status and sorting filter popover. |
+| **Frontend** | Email Detail View | Gmail-style typography, full subject display, campaign parameters, and smart back navigation. |
 | **Backend** | Google OAuth Login | Real OAuth 2.0 exchange, user profile upsert, and secure HttpOnly JWT session cookies (`/api/auth/*`). |
 | **Backend** | Email Scheduler | Campaign persistence in PostgreSQL, BullMQ delayed job enqueuing without cron (`/api/schedules`). |
 | **Backend** | Worker & Throttling | Configurable concurrency, inter-email delay spacing, and Redis atomic hourly rate limiting. |
 | **Backend** | Email Sending | Nodemailer integration with Ethereal SMTP, preview URL generation, and network fallback resilience. |
 | **Backend** | API Endpoints | REST endpoints for scheduled list, sent list, counters, email detail, and recipient parsing. |
-| **Frontend** | Google Login UI | Figma-matched login screen with Google OAuth button and error toasts (`/login`). |
-| **Frontend** | Navigation & Dashboard | Sidebar with real-time Scheduled/Sent counters, user avatar card, and primary green branding (`/dashboard/*`). |
-| **Frontend** | Scheduled & Sent Tables | Status badges (`[Tue 9:15:12 AM]`, `sent`, `failed`), Ethereal preview links, and star affordances. |
-| **Frontend** | Compose & Send Later | Rich-text editor toolbar, sender dropdown, delay & hourly limit controls, and Send Later popover with presets. |
-| **Frontend** | Recipient Upload | CSV and TXT file uploader with regex parsing, deduplication, and detected count badges (`✓ N detected`). |
-| **Frontend** | Search & Details | Debounced multi-field search (recipient, subject, body, sender) and full Email Detail view (`/dashboard/email/[id]`). |
 
 ## 5. Assumptions & Trade-offs
 
-1. **Email Sandbox**: Ethereal Email SMTP is used as required by the assignment for safe testing without dispatching real spam. If outbound SMTP port 587 is blocked by local ISP firewalls, an internal simulation fallback records delivery and renders the full email in the dashboard.
+1. **Email Sandbox**: Ethereal Email SMTP is used as required by the assignment for safe testing without dispatching real spam. When outbound SMTP connects to Ethereal, it generates a direct web preview link. If outbound SMTP port 587 is restricted by local network firewalls, an internal simulation fallback records delivery and renders the full email in the dashboard.
 2. **Rate Limit Overflow**: Exceeded hourly limits reschedule jobs into the next available hour window rather than dropping or rejecting them.
 3. **Database & Queue Separation**: PostgreSQL serves as the durable source of truth for email records and campaign analytics, while Redis manages the high-throughput delayed execution queue.
