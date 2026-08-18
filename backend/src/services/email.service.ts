@@ -6,6 +6,7 @@ export interface EmailQueryFilters {
   limit?: number;
   search?: string;
   status?: string;
+  sort?: 'asc' | 'desc';
 }
 
 export interface PaginatedResult<T> {
@@ -40,15 +41,22 @@ export class EmailService {
    * Lists scheduled emails for the authenticated user
    */
   static async getScheduledEmails(filters: EmailQueryFilters): Promise<PaginatedResult<EmailRowDto>> {
-    const { userId, page = 1, limit = 20, search = '' } = filters;
+    const { userId, page = 1, limit = 20, search = '', status, sort = 'asc' } = filters;
     const offset = (page - 1) * limit;
 
     const queryParams: any[] = [userId];
-    let whereClause = `WHERE c.user_id = $1 AND se.status IN ('scheduled', 'processing')`;
+    let whereClause = `WHERE c.user_id = $1`;
+
+    if (status && ['scheduled', 'processing'].includes(status)) {
+      queryParams.push(status);
+      whereClause += ` AND se.status = $${queryParams.length}`;
+    } else {
+      whereClause += ` AND se.status IN ('scheduled', 'processing')`;
+    }
 
     if (search.trim()) {
       queryParams.push(`%${search.trim()}%`);
-      whereClause += ` AND (se.recipient_email ILIKE $${queryParams.length} OR c.subject ILIKE $${queryParams.length})`;
+      whereClause += ` AND (se.recipient_email ILIKE $${queryParams.length} OR c.subject ILIKE $${queryParams.length} OR c.body ILIKE $${queryParams.length} OR s.display_name ILIKE $${queryParams.length} OR s.email ILIKE $${queryParams.length})`;
     }
 
     // Get total count
@@ -56,10 +64,13 @@ export class EmailService {
       SELECT COUNT(*) as count
       FROM scheduled_emails se
       JOIN campaigns c ON se.campaign_id = c.id
+      LEFT JOIN senders s ON c.sender_id = s.id
       ${whereClause}
     `;
     const countRes = await query(countSql, queryParams);
     const total = parseInt(countRes.rows[0].count, 10);
+
+    const sortOrder = sort === 'desc' ? 'DESC' : 'ASC';
 
     // Get paginated data
     queryParams.push(limit, offset);
@@ -83,7 +94,7 @@ export class EmailService {
       JOIN campaigns c ON se.campaign_id = c.id
       LEFT JOIN senders s ON c.sender_id = s.id
       ${whereClause}
-      ORDER BY se.scheduled_at ASC
+      ORDER BY se.scheduled_at ${sortOrder}
       LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
     `;
 
@@ -104,7 +115,7 @@ export class EmailService {
    * Lists sent (or failed) emails for the authenticated user
    */
   static async getSentEmails(filters: EmailQueryFilters): Promise<PaginatedResult<EmailRowDto>> {
-    const { userId, page = 1, limit = 20, search = '', status } = filters;
+    const { userId, page = 1, limit = 20, search = '', status, sort = 'desc' } = filters;
     const offset = (page - 1) * limit;
 
     const queryParams: any[] = [userId];
@@ -119,7 +130,7 @@ export class EmailService {
 
     if (search.trim()) {
       queryParams.push(`%${search.trim()}%`);
-      whereClause += ` AND (se.recipient_email ILIKE $${queryParams.length} OR c.subject ILIKE $${queryParams.length})`;
+      whereClause += ` AND (se.recipient_email ILIKE $${queryParams.length} OR c.subject ILIKE $${queryParams.length} OR c.body ILIKE $${queryParams.length} OR s.display_name ILIKE $${queryParams.length} OR s.email ILIKE $${queryParams.length})`;
     }
 
     // Get total count
@@ -127,10 +138,13 @@ export class EmailService {
       SELECT COUNT(*) as count
       FROM scheduled_emails se
       JOIN campaigns c ON se.campaign_id = c.id
+      LEFT JOIN senders s ON c.sender_id = s.id
       ${whereClause}
     `;
     const countRes = await query(countSql, queryParams);
     const total = parseInt(countRes.rows[0].count, 10);
+
+    const sortOrder = sort === 'asc' ? 'ASC' : 'DESC';
 
     // Get paginated data
     queryParams.push(limit, offset);
@@ -154,7 +168,7 @@ export class EmailService {
       JOIN campaigns c ON se.campaign_id = c.id
       LEFT JOIN senders s ON c.sender_id = s.id
       ${whereClause}
-      ORDER BY se.sent_at DESC NULLS LAST, se.scheduled_at DESC
+      ORDER BY se.sent_at ${sortOrder} NULLS LAST, se.scheduled_at ${sortOrder}
       LIMIT $${queryParams.length - 1} OFFSET $${queryParams.length}
     `;
 

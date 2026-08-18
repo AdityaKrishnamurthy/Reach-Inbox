@@ -22,11 +22,13 @@ interface RichTextToolbarProps {
 }
 
 export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) => {
-  const handleAction = (cmd: string, val: string = '') => {
+  const handleAction = (e: React.MouseEvent, cmd: string, val: string = '') => {
+    e.preventDefault();
     onCommand(cmd, val);
   };
 
-  const handleLink = () => {
+  const handleLink = (e: React.MouseEvent) => {
+    e.preventDefault();
     const url = prompt('Enter URL:');
     if (url) {
       onCommand('createLink', url);
@@ -38,17 +40,17 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       {/* History */}
       <button
         type="button"
-        onClick={() => handleAction('undo')}
+        onMouseDown={(e) => handleAction(e, 'undo')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
-        title="Undo"
+        title="Undo (Ctrl+Z)"
       >
         <Undo className="w-3.5 h-3.5" />
       </button>
       <button
         type="button"
-        onClick={() => handleAction('redo')}
+        onMouseDown={(e) => handleAction(e, 'redo')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-colors"
-        title="Redo"
+        title="Redo (Ctrl+Y)"
       >
         <Redo className="w-3.5 h-3.5" />
       </button>
@@ -58,31 +60,31 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       {/* Formatting */}
       <button
         type="button"
-        onClick={() => handleAction('bold')}
+        onMouseDown={(e) => handleAction(e, 'bold')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors font-bold"
-        title="Bold"
+        title="Bold (Ctrl+B)"
       >
         <Bold className="w-3.5 h-3.5" />
       </button>
       <button
         type="button"
-        onClick={() => handleAction('italic')}
+        onMouseDown={(e) => handleAction(e, 'italic')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors italic"
-        title="Italic"
+        title="Italic (Ctrl+I)"
       >
         <Italic className="w-3.5 h-3.5" />
       </button>
       <button
         type="button"
-        onClick={() => handleAction('underline')}
+        onMouseDown={(e) => handleAction(e, 'underline')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors underline"
-        title="Underline"
+        title="Underline (Ctrl+U)"
       >
         <Underline className="w-3.5 h-3.5" />
       </button>
       <button
         type="button"
-        onClick={() => handleAction('strikeThrough')}
+        onMouseDown={(e) => handleAction(e, 'strikeThrough')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Strikethrough"
       >
@@ -94,7 +96,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       {/* Lists */}
       <button
         type="button"
-        onClick={() => handleAction('insertUnorderedList')}
+        onMouseDown={(e) => handleAction(e, 'insertUnorderedList')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Bullet List"
       >
@@ -102,7 +104,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       </button>
       <button
         type="button"
-        onClick={() => handleAction('insertOrderedList')}
+        onMouseDown={(e) => handleAction(e, 'insertOrderedList')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Numbered List"
       >
@@ -110,9 +112,9 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       </button>
       <button
         type="button"
-        onClick={() => handleAction('formatBlock', '<blockquote>')}
+        onMouseDown={(e) => handleAction(e, 'formatBlock', 'blockquote')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
-        title="Quote"
+        title="Quote Block"
       >
         <Quote className="w-3.5 h-3.5" />
       </button>
@@ -122,7 +124,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       {/* Alignment */}
       <button
         type="button"
-        onClick={() => handleAction('justifyLeft')}
+        onMouseDown={(e) => handleAction(e, 'justifyLeft')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Align Left"
       >
@@ -130,7 +132,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       </button>
       <button
         type="button"
-        onClick={() => handleAction('justifyCenter')}
+        onMouseDown={(e) => handleAction(e, 'justifyCenter')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Align Center"
       >
@@ -138,7 +140,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       </button>
       <button
         type="button"
-        onClick={() => handleAction('justifyRight')}
+        onMouseDown={(e) => handleAction(e, 'justifyRight')}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Align Right"
       >
@@ -146,7 +148,7 @@ export const RichTextToolbar: React.FC<RichTextToolbarProps> = ({ onCommand }) =
       </button>
       <button
         type="button"
-        onClick={handleLink}
+        onMouseDown={handleLink}
         className="p-1.5 rounded hover:bg-gray-200 text-gray-600 hover:text-gray-900 transition-colors"
         title="Insert Link"
       >

@@ -15,12 +15,16 @@ export class EmailController {
       const page = parseInt(req.query.page as string, 10) || 1;
       const limit = parseInt(req.query.limit as string, 10) || 20;
       const search = (req.query.search as string) || '';
+      const status = req.query.status as string | undefined;
+      const sort = req.query.sort as 'asc' | 'desc' | undefined;
 
       const result = await EmailService.getScheduledEmails({
         userId: req.user.id,
         page,
         limit,
         search,
+        status,
+        sort,
       });
 
       res.json(result);
@@ -44,6 +48,7 @@ export class EmailController {
       const limit = parseInt(req.query.limit as string, 10) || 20;
       const search = (req.query.search as string) || '';
       const status = req.query.status as string | undefined;
+      const sort = req.query.sort as 'asc' | 'desc' | undefined;
 
       const result = await EmailService.getSentEmails({
         userId: req.user.id,
@@ -51,6 +56,7 @@ export class EmailController {
         limit,
         search,
         status,
+        sort,
       });
 
       res.json(result);
