@@ -6,6 +6,9 @@ import { checkDbConnection } from './db';
 import { redis } from './config/redis';
 
 import authRoutes from './routes/auth.routes';
+import scheduleRoutes from './routes/schedule.routes';
+import emailRoutes from './routes/email.routes';
+import senderRoutes from './routes/sender.routes';
 
 export const createApp = (): Express => {
   const app = express();
@@ -21,6 +24,9 @@ export const createApp = (): Express => {
 
   // Mount routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/schedules', scheduleRoutes);
+  app.use('/api/emails', emailRoutes);
+  app.use('/api/senders', senderRoutes);
 
   // Health check endpoint
   app.get('/api/health', async (req: Request, res: Response) => {
