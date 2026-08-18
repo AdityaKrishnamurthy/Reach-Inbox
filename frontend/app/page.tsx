@@ -5,7 +5,7 @@ export default function HomePage() {
     <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-white">
       <div className="w-full max-w-md p-8 border border-gray-200 rounded-lg text-center shadow-sm">
         <div className="flex justify-center mb-6">
-          <div className="w-10 h-10 bg-black text-white rounded flex items-center justify-center font-bold text-xl">
+          <div className="w-10 h-10 bg-[#00A36C] text-white rounded-lg flex items-center justify-center font-bold text-xl shadow-sm">
             R
           </div>
         </div>

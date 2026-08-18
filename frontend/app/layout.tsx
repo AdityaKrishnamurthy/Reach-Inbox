@@ -3,8 +3,13 @@ import './globals.css';
 import { Providers } from '@/components/layout/Providers';
 
 export const metadata: Metadata = {
-  title: 'ReachInbox — Email Scheduler',
+  title: 'ReachInbox - Email Scheduler',
   description: 'Durable full-stack cold email scheduler and dashboard',
+  icons: {
+    icon: '/icon.svg',
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

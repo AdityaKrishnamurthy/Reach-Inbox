@@ -2,6 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { LoginCard } from '@/components/auth/LoginCard';
 
 function LoginContent() {
@@ -10,12 +11,12 @@ function LoginContent() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="mb-8 flex items-center gap-2">
-        <div className="w-8 h-8 bg-black text-white rounded flex items-center justify-center font-bold text-lg tracking-tight">
+      <Link href="/" className="mb-8 flex items-center gap-2 hover:opacity-90 transition-opacity">
+        <div className="w-8 h-8 bg-[#00A36C] text-white rounded-lg flex items-center justify-center font-bold text-lg tracking-tight shadow-sm">
           R
         </div>
         <span className="text-xl font-semibold tracking-tight text-gray-900">ReachInbox</span>
-      </div>
+      </Link>
 
       <LoginCard errorMessage={error} />
 

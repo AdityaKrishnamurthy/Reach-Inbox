@@ -32,8 +32,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ countsRefreshTrigger }) => {
     };
 
     fetchCounts();
+
+    // Auto-refresh counts every 6 seconds and on custom refresh event
+    const interval = setInterval(fetchCounts, 6000);
+    const handleCustomRefresh = () => fetchCounts();
+    window.addEventListener('reachinbox:refresh-counts', handleCustomRefresh);
+
     return () => {
       isMounted = false;
+      clearInterval(interval);
+      window.removeEventListener('reachinbox:refresh-counts', handleCustomRefresh);
     };
   }, [pathname, countsRefreshTrigger]);
 
@@ -44,12 +52,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ countsRefreshTrigger }) => {
     <aside className="w-64 min-w-[256px] h-screen bg-white border-r border-gray-200 flex flex-col justify-between select-none">
       <div className="p-4 space-y-6">
         {/* Brand Logo */}
-        <div className="flex items-center gap-2.5 px-2">
-          <div className="w-8 h-8 bg-black text-white rounded flex items-center justify-center font-bold text-base tracking-tight">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-2.5 px-2 hover:opacity-90 transition-opacity cursor-pointer"
+          title="ReachInbox Home"
+        >
+          <div className="w-8 h-8 bg-[#00A36C] text-white rounded-lg flex items-center justify-center font-bold text-base tracking-tight shadow-sm">
             R
           </div>
           <span className="text-lg font-semibold tracking-tight text-gray-900">ReachInbox</span>
-        </div>
+        </Link>
 
         {/* Profile Card */}
         <div className="relative">
