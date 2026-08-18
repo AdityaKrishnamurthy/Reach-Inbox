@@ -5,20 +5,29 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import { fetchApi } from '@/lib/api';
-import { Clock, Send, Archive, Trash2, ChevronDown, LogOut, Plus, User as UserIcon } from 'lucide-react';
+import { Clock, Send, Star, Archive, Trash2, ChevronDown, LogOut, Plus, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
+import { getStarredEmailIds } from '@/lib/starred';
+
+interface EmailCounts {
+  scheduled: number;
+  sent: number;
+  archived: number;
+  trash: number;
+}
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const [counts, setCounts] = useState<{ scheduled: number; sent: number }>({ scheduled: 0, sent: 0 });
+  const [counts, setCounts] = useState<EmailCounts>({ scheduled: 0, sent: 0, archived: 0, trash: 0 });
+  const [starredCount, setStarredCount] = useState(0);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     const fetchCounts = async () => {
       try {
-        const data = await fetchApi<{ scheduled: number; sent: number }>('/api/emails/counts');
+        const data = await fetchApi<EmailCounts>('/api/emails/counts');
         if (isMounted && data) {
           setCounts(data);
         }
@@ -41,8 +50,18 @@ export const Sidebar: React.FC = () => {
     };
   }, [pathname]);
 
+  useEffect(() => {
+    // Starred is a localStorage-only concept, so its count is computed
+    // locally rather than fetched - it updates instantly on every star toggle.
+    const updateStarredCount = () => setStarredCount(getStarredEmailIds().length);
+    updateStarredCount();
+    window.addEventListener('reachinbox:star-changed', updateStarredCount);
+    return () => window.removeEventListener('reachinbox:star-changed', updateStarredCount);
+  }, []);
+
   const isScheduledActive = pathname === '/dashboard' || pathname === '/dashboard/scheduled';
   const isSentActive = pathname === '/dashboard/sent';
+  const isStarredActive = pathname === '/dashboard/starred';
   const isArchivedActive = pathname === '/dashboard/archived';
   const isTrashActive = pathname === '/dashboard/trash';
 
@@ -179,10 +198,32 @@ export const Sidebar: React.FC = () => {
             </span>
           </Link>
 
+          {/* Starred Nav */}
+          <Link
+            href="/dashboard/starred"
+            className={`flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              isStarredActive
+                ? 'bg-[#E8F5E9] text-[#166534]'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Star className={`w-4 h-4 ${isStarredActive ? 'text-[#166534]' : 'text-gray-400'}`} />
+              <span>Starred</span>
+            </div>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                isStarredActive ? 'bg-[#DCFCE7] text-[#166534] font-semibold' : 'text-gray-400'
+              }`}
+            >
+              {starredCount}
+            </span>
+          </Link>
+
           {/* Archived Nav */}
           <Link
             href="/dashboard/archived"
-            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               isArchivedActive
                 ? 'bg-[#E8F5E9] text-[#166534]'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -192,12 +233,19 @@ export const Sidebar: React.FC = () => {
               <Archive className={`w-4 h-4 ${isArchivedActive ? 'text-[#166534]' : 'text-gray-400'}`} />
               <span>Archived</span>
             </div>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                isArchivedActive ? 'bg-[#DCFCE7] text-[#166534] font-semibold' : 'text-gray-400'
+              }`}
+            >
+              {counts.archived}
+            </span>
           </Link>
 
           {/* Trash Nav */}
           <Link
             href="/dashboard/trash"
-            className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors ${
               isTrashActive
                 ? 'bg-[#E8F5E9] text-[#166534]'
                 : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -207,6 +255,13 @@ export const Sidebar: React.FC = () => {
               <Trash2 className={`w-4 h-4 ${isTrashActive ? 'text-[#166534]' : 'text-gray-400'}`} />
               <span>Trash</span>
             </div>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                isTrashActive ? 'bg-[#DCFCE7] text-[#166534] font-semibold' : 'text-gray-400'
+              }`}
+            >
+              {counts.trash}
+            </span>
           </Link>
         </div>
       </div>
