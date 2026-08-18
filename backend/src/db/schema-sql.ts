@@ -57,9 +57,12 @@ CREATE TABLE IF NOT EXISTS campaigns (
     delay_ms INTEGER NOT NULL DEFAULT 2000,
     hourly_limit INTEGER NOT NULL DEFAULT 50,
     total_recipients INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE campaigns ADD COLUMN IF NOT EXISTS status VARCHAR(50) NOT NULL DEFAULT 'scheduled';
 
 DROP TRIGGER IF EXISTS trg_campaigns_updated_at ON campaigns;
 CREATE TRIGGER trg_campaigns_updated_at
@@ -74,6 +77,7 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
     scheduled_at TIMESTAMPTZ NOT NULL,
     sent_at TIMESTAMPTZ,
     status VARCHAR(50) NOT NULL DEFAULT 'scheduled',
+    bull_job_id VARCHAR(255),
     attempts INTEGER NOT NULL DEFAULT 0,
     failure_reason TEXT,
     ethereal_preview_url TEXT,
@@ -81,6 +85,8 @@ CREATE TABLE IF NOT EXISTS scheduled_emails (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE scheduled_emails ADD COLUMN IF NOT EXISTS bull_job_id VARCHAR(255);
 
 DROP TRIGGER IF EXISTS trg_scheduled_emails_updated_at ON scheduled_emails;
 CREATE TRIGGER trg_scheduled_emails_updated_at
@@ -92,4 +98,5 @@ CREATE INDEX IF NOT EXISTS idx_scheduled_emails_campaign_id ON scheduled_emails(
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_status ON scheduled_emails(status);
 CREATE INDEX IF NOT EXISTS idx_scheduled_emails_scheduled_at ON scheduled_emails(scheduled_at);
 CREATE INDEX IF NOT EXISTS idx_campaigns_user_id ON campaigns(user_id);
+CREATE INDEX IF NOT EXISTS idx_campaigns_status ON campaigns(status);
 `;
