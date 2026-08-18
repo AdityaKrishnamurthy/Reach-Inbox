@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Star, ExternalLink } from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
+import { isEmailStarred, toggleEmailStar } from '@/lib/starred';
 
 export interface EmailRowData {
   id: string;
@@ -22,20 +23,62 @@ export interface EmailRowData {
 
 interface EmailListRowProps {
   email: EmailRowData;
+  searchQuery?: string;
 }
 
-export const EmailListRow: React.FC<EmailListRowProps> = ({ email }) => {
+const HighlightMatch: React.FC<{ text: string; query?: string }> = ({ text, query }) => {
+  if (!query || !query.trim() || !text) return <span>{text}</span>;
+
+  const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts = text.split(regex);
+
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.toLowerCase() === query.trim().toLowerCase() ? (
+          <mark key={i} className="bg-emerald-100 text-emerald-900 rounded-sm px-0.5 font-medium not-italic">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
+  );
+};
+
+export const EmailListRow: React.FC<EmailListRowProps> = ({ email, searchQuery = '' }) => {
   const [isStarred, setIsStarred] = useState(false);
+
+  useEffect(() => {
+    setIsStarred(isEmailStarred(email.id));
+
+    const handleStarChanged = (e: Event) => {
+      const customEvent = e as CustomEvent<{ id: string; isStarred: boolean }>;
+      if (customEvent.detail && customEvent.detail.id === email.id) {
+        setIsStarred(customEvent.detail.isStarred);
+      }
+    };
+
+    window.addEventListener('reachinbox:star-changed', handleStarChanged);
+    return () => {
+      window.removeEventListener('reachinbox:star-changed', handleStarChanged);
+    };
+  }, [email.id]);
 
   const handleStarClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsStarred(!isStarred);
+    const newState = toggleEmailStar(email.id);
+    setIsStarred(newState);
   };
 
   const handlePreviewClick = (e: React.MouseEvent) => {
     e.stopPropagation();
   };
+
+  const cleanBodyPreview = email.bodyPreview ? email.bodyPreview.replace(/<[^>]*>?/gm, ' ') : '';
 
   return (
     <div className="group relative flex items-center justify-between py-3.5 px-6 border-b border-gray-100 hover:bg-gray-50/80 transition-colors cursor-pointer select-none">
@@ -47,7 +90,7 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({ email }) => {
         {/* Recipient */}
         <div className="w-48 min-w-[160px] truncate text-sm font-medium text-gray-900">
           <span className="text-gray-400 font-normal mr-1">To:</span>
-          {email.recipientEmail}
+          <HighlightMatch text={email.recipientEmail} query={searchQuery} />
         </div>
 
         {/* Status Badge */}
@@ -61,10 +104,12 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({ email }) => {
 
         {/* Subject & Preview Snippet */}
         <div className="min-w-0 flex-1 truncate text-sm text-gray-900">
-          <span className="font-medium text-gray-900">{email.subject || '(No Subject)'}</span>
-          {email.bodyPreview && (
+          <span className="font-medium text-gray-900">
+            <HighlightMatch text={email.subject || '(No Subject)'} query={searchQuery} />
+          </span>
+          {cleanBodyPreview && (
             <span className="text-gray-500 font-normal ml-2">
-              — {email.bodyPreview.replace(/<[^>]*>?/gm, ' ')}
+              - <HighlightMatch text={cleanBodyPreview} query={searchQuery} />
             </span>
           )}
         </div>

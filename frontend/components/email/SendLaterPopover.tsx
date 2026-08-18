@@ -92,6 +92,7 @@ export const SendLaterPopover: React.FC<SendLaterPopoverProps> = ({
           <div className="relative">
             <input
               type="datetime-local"
+              min={new Date().toISOString().slice(0, 16)}
               value={customDateTimeStr}
               onChange={handleCustomChange}
               className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"

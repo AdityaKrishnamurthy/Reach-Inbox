@@ -14,8 +14,11 @@ interface EmailListProps {
   emptyDescription: string;
   page: number;
   totalPages: number;
+  searchQuery?: string;
   onPageChange: (newPage: number) => void;
   onRetry?: () => void;
+  actionText?: string;
+  actionHref?: string;
 }
 
 export const EmailList: React.FC<EmailListProps> = ({
@@ -26,8 +29,11 @@ export const EmailList: React.FC<EmailListProps> = ({
   emptyDescription,
   page,
   totalPages,
+  searchQuery = '',
   onPageChange,
   onRetry,
+  actionText,
+  actionHref,
 }) => {
   if (loading) {
     return <LoadingState rows={8} />;
@@ -55,7 +61,14 @@ export const EmailList: React.FC<EmailListProps> = ({
   }
 
   if (!emails || emails.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        description={emptyDescription}
+        actionText={searchQuery ? undefined : actionText}
+        actionHref={searchQuery ? undefined : actionHref}
+      />
+    );
   }
 
   return (
@@ -63,7 +76,7 @@ export const EmailList: React.FC<EmailListProps> = ({
       {/* Email Rows List */}
       <div className="divide-y divide-gray-100">
         {emails.map((email) => (
-          <EmailListRow key={email.id} email={email} />
+          <EmailListRow key={email.id} email={email} searchQuery={searchQuery} />
         ))}
       </div>
 

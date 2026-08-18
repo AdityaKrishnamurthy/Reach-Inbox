@@ -76,11 +76,33 @@ export const EmailComposer: React.FC = () => {
     setRecipients((prev) => prev.filter((r) => r !== email));
   };
 
+  const [isDraggingFile, setIsDraggingFile] = useState(false);
+
   const handleRecipientsUploaded = (uploadedEmails: string[]) => {
     setRecipients((prev) => {
       const combined = new Set([...prev, ...uploadedEmails]);
       return Array.from(combined);
     });
+  };
+
+  const handleDropFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt'))) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) {
+          const emailRegex =
+            /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+/g;
+          const matches = content.match(emailRegex) || [];
+          const unique = Array.from(new Set(matches.map((m) => m.toLowerCase())));
+          handleRecipientsUploaded(unique);
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   // Editor toolbar command
@@ -167,6 +189,14 @@ export const EmailComposer: React.FC = () => {
     }
   };
 
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/dashboard/scheduled');
+    }
+  };
+
   const isScheduledForFuture = scheduledDate.getTime() > Date.now() + 30000;
 
   return (
@@ -174,13 +204,14 @@ export const EmailComposer: React.FC = () => {
       {/* Top Header Bar (Figma Match) */}
       <div className="flex items-center justify-between pb-4 border-b border-gray-200">
         <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard/scheduled"
+          <button
+            type="button"
+            onClick={handleBack}
             className="p-2 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-900 transition-colors"
             title="Back"
           >
             <ArrowLeft className="w-5 h-5" />
-          </Link>
+          </button>
           <h1 className="text-xl font-semibold text-gray-900">Compose New Email</h1>
         </div>
 
@@ -286,8 +317,20 @@ export const EmailComposer: React.FC = () => {
           </div>
         </div>
 
-        {/* To Row with Chips and Upload Button */}
-        <div className="flex items-start py-2 border-b border-gray-100">
+        {/* To Row with Chips, Drag-and-Drop and Upload Button */}
+        <div
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDraggingFile(true);
+          }}
+          onDragLeave={() => setIsDraggingFile(false)}
+          onDrop={handleDropFile}
+          className={`flex items-start py-2 border-b transition-all ${
+            isDraggingFile
+              ? 'bg-emerald-50/70 border-emerald-500 rounded-lg px-2 shadow-inner'
+              : 'border-gray-100'
+          }`}
+        >
           <label className="w-20 pt-1.5 text-xs font-medium text-gray-500 uppercase tracking-wider">
             To
           </label>
