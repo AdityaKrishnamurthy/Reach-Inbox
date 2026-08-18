@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { getRedisOptions } from '../config/redis';
+import { createRedisConnection } from '../config/redis';
 import { EMAIL_QUEUE_NAME, enqueueEmailJob } from '../queue/email.queue';
 import { config } from '../config/env';
 import { query } from '../db';
@@ -23,7 +23,7 @@ export class EmailWorker {
         return this.processJob(job);
       },
       {
-        connection: getRedisOptions(),
+        connection: createRedisConnection(),
         concurrency: config.worker.concurrency,
         limiter: {
           max: 100,

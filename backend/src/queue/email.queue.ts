@@ -1,11 +1,11 @@
 import { Queue, JobsOptions } from 'bullmq';
-import { getRedisOptions } from '../config/redis';
+import { createRedisConnection } from '../config/redis';
 import { EmailJobData } from '../types/db';
 
 export const EMAIL_QUEUE_NAME = 'email-send-queue';
 
 export const emailQueue = new Queue<EmailJobData>(EMAIL_QUEUE_NAME, {
-  connection: getRedisOptions(),
+  connection: createRedisConnection(),
   defaultJobOptions: {
     removeOnComplete: false,
     removeOnFail: false,
