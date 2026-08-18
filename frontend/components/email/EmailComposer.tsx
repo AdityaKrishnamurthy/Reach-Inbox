@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Paperclip,
   Clock,
   Send,
   CheckCircle2,
@@ -16,8 +15,13 @@ import { RecipientChips } from './RecipientChips';
 import { RecipientUploader } from './RecipientUploader';
 import { RichTextToolbar } from './RichTextToolbar';
 import { SendLaterPopover } from './SendLaterPopover';
-import { AttachmentList, EmailAttachment } from './AttachmentList';
-import { fetchApi } from '@/lib/api';
+import { AddSenderModal } from './AddSenderModal';
+import { fetchApi, ApiError } from '@/lib/api';
+
+const ADD_SENDER_OPTION = '__add_sender__';
+
+const MAX_DELAY_SECONDS = 3600;
+const MAX_HOURLY_LIMIT = 10000;
 
 interface SenderOption {
   id: string;
@@ -38,32 +42,54 @@ export const EmailComposer: React.FC = () => {
   const [hourlyLimit, setHourlyLimit] = useState<number>(50);
   const [scheduledDate, setScheduledDate] = useState<Date>(new Date());
   const [isSendLaterOpen, setIsSendLaterOpen] = useState(false);
-  const [attachments, setAttachments] = useState<EmailAttachment[]>([]);
+  const [isAddSenderOpen, setIsAddSenderOpen] = useState(false);
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
   const editorRef = useRef<HTMLDivElement>(null);
-  const attachmentInputRef = useRef<HTMLInputElement>(null);
+  // Stable for the lifetime of this compose session so a double-click, network
+  // retry, or accidental double-submit hits the backend's idempotency guard
+  // instead of creating a duplicate campaign. Regenerated after a successful
+  // submit in case the user stays on the page.
+  const requestIdRef = useRef<string>(crypto.randomUUID());
+
+  const loadSenders = async (selectSenderId?: string) => {
+    try {
+      const res = await fetchApi<{ senders: SenderOption[] }>('/api/senders');
+      if (res.senders && res.senders.length > 0) {
+        setSenders(res.senders);
+        const target = selectSenderId
+          ? res.senders.find((s) => s.id === selectSenderId)
+          : res.senders.find((s) => s.is_default) || res.senders[0];
+        if (target) setSelectedSenderId(target.id);
+      }
+    } catch (err) {
+      console.error('Failed to load senders:', err);
+    }
+  };
 
   // Fetch senders on mount
   useEffect(() => {
-    const loadSenders = async () => {
-      try {
-        const res = await fetchApi<{ senders: SenderOption[] }>('/api/senders');
-        if (res.senders && res.senders.length > 0) {
-          setSenders(res.senders);
-          const defaultSender = res.senders.find((s) => s.is_default) || res.senders[0];
-          setSelectedSenderId(defaultSender.id);
-        }
-      } catch (err) {
-        console.error('Failed to load senders:', err);
-      }
-    };
     loadSenders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleSenderChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (e.target.value === ADD_SENDER_OPTION) {
+      setIsAddSenderOpen(true);
+      return;
+    }
+    setSelectedSenderId(e.target.value);
+  };
+
+  const handleSenderCreated = (sender: SenderOption) => {
+    loadSenders(sender.id);
+    setInfoMessage(`Added sender "${sender.display_name}".`);
+  };
 
   // Recipient handlers
   const handleAddRecipient = (email: string) => {
@@ -78,31 +104,47 @@ export const EmailComposer: React.FC = () => {
 
   const [isDraggingFile, setIsDraggingFile] = useState(false);
 
-  const handleRecipientsUploaded = (uploadedEmails: string[]) => {
+  const handleRecipientsUploaded = (uploadedEmails: string[], invalidCount = 0) => {
     setRecipients((prev) => {
       const combined = new Set([...prev, ...uploadedEmails]);
       return Array.from(combined);
     });
+    setInfoMessage(
+      invalidCount > 0
+        ? `Added ${uploadedEmails.length} recipient(s). Skipped ${invalidCount} invalid entr${invalidCount === 1 ? 'y' : 'ies'}.`
+        : uploadedEmails.length > 0
+        ? `Added ${uploadedEmails.length} recipient(s).`
+        : null
+    );
   };
 
   const handleDropFile = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDraggingFile(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && (file.name.endsWith('.csv') || file.name.endsWith('.txt'))) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const content = event.target?.result as string;
-        if (content) {
-          const emailRegex =
-            /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+/g;
-          const matches = content.match(emailRegex) || [];
-          const unique = Array.from(new Set(matches.map((m) => m.toLowerCase())));
-          handleRecipientsUploaded(unique);
-        }
-      };
-      reader.readAsText(file);
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+      setErrorMessage('Only .csv or .txt files are supported for recipient upload.');
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const content = event.target?.result as string;
+      if (!content) return;
+      try {
+        const result = await fetchApi<{ validEmails: string[]; invalidEntries: string[] }>(
+          '/api/schedules/parse-recipients',
+          { method: 'POST', body: JSON.stringify({ recipients: content }) }
+        );
+        handleRecipientsUploaded(result.validEmails, result.invalidEntries.length);
+      } catch (err: any) {
+        setErrorMessage(err.message || 'Failed to parse the dropped file.');
+      }
+    };
+    reader.onerror = () => setErrorMessage('Failed to read the dropped file.');
+    reader.readAsText(file);
   };
 
   // Editor toolbar command
@@ -111,29 +153,6 @@ export const EmailComposer: React.FC = () => {
     if (editorRef.current) {
       editorRef.current.focus();
     }
-  };
-
-  // Attachment handler
-  const handleAttachmentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const newAttachments: EmailAttachment[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      newAttachments.push({
-        name: file.name,
-        size: file.size,
-        type: file.type,
-      });
-    }
-
-    setAttachments((prev) => [...prev, ...newAttachments]);
-    e.target.value = '';
-  };
-
-  const handleRemoveAttachment = (index: number) => {
-    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   // Form submission
@@ -157,6 +176,21 @@ export const EmailComposer: React.FC = () => {
       setErrorMessage('Please enter email body content.');
       return;
     }
+    if (delaySeconds < 0 || delaySeconds > MAX_DELAY_SECONDS) {
+      setErrorMessage(`Delay between emails must be between 0 and ${MAX_DELAY_SECONDS} seconds.`);
+      return;
+    }
+    if (hourlyLimit < 1 || hourlyLimit > MAX_HOURLY_LIMIT) {
+      setErrorMessage(`Hourly limit must be between 1 and ${MAX_HOURLY_LIMIT}.`);
+      return;
+    }
+    // Allow a small tolerance since the "Now" preset captures a timestamp a few
+    // seconds before the actual submit; reject anything genuinely in the past.
+    const PAST_TOLERANCE_MS = 15000;
+    if (scheduledDate.getTime() < Date.now() - PAST_TOLERANCE_MS) {
+      setErrorMessage('The scheduled send time is in the past. Please pick a current or future time.');
+      return;
+    }
 
     setIsSubmitting(true);
 
@@ -166,12 +200,13 @@ export const EmailComposer: React.FC = () => {
         recipients,
         subject: subject.trim(),
         body: bodyHtml,
-        startAt: scheduledDate.toISOString(),
+        startAt: new Date(Math.max(scheduledDate.getTime(), Date.now())).toISOString(),
         delayMs: Math.max(0, delaySeconds * 1000),
         hourlyLimit: Math.max(1, hourlyLimit),
+        requestId: requestIdRef.current,
       };
 
-      const result = await fetchApi('/api/schedules', {
+      const result = await fetchApi<{ scheduledCount: number }>('/api/schedules', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -179,12 +214,20 @@ export const EmailComposer: React.FC = () => {
       setSuccessMessage(
         `Successfully scheduled ${result.scheduledCount || recipients.length} email(s)! Redirecting to scheduled list...`
       );
+      // Fresh idempotency key for any further submission in this session.
+      requestIdRef.current = crypto.randomUUID();
 
       setTimeout(() => {
         router.push('/dashboard/scheduled');
       }, 1200);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Failed to schedule campaign');
+      if (err instanceof ApiError && err.fieldErrors) {
+        const firstField = Object.keys(err.fieldErrors)[0];
+        const firstMessage = firstField ? err.fieldErrors[firstField]?.[0] : undefined;
+        setErrorMessage(firstMessage || err.message);
+      } else {
+        setErrorMessage(err.message || 'Failed to schedule campaign');
+      }
       setIsSubmitting(false);
     }
   };
@@ -216,28 +259,6 @@ export const EmailComposer: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Attachment Button */}
-          <input
-            ref={attachmentInputRef}
-            type="file"
-            multiple
-            onChange={handleAttachmentUpload}
-            className="hidden"
-          />
-          <button
-            type="button"
-            onClick={() => attachmentInputRef.current?.click()}
-            className={`p-2 rounded-lg border transition-colors flex items-center gap-1.5 text-xs font-medium ${
-              attachments.length > 0
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                : 'text-gray-600 border-gray-200 hover:bg-gray-50'
-            }`}
-            title="Add attachment"
-          >
-            <Paperclip className="w-4 h-4" />
-            {attachments.length > 0 && <span>{attachments.length}</span>}
-          </button>
-
           {/* Send Later Clock Trigger */}
           <div className="relative">
             <button
@@ -295,6 +316,13 @@ export const EmailComposer: React.FC = () => {
         </div>
       )}
 
+      {infoMessage && !errorMessage && !successMessage && (
+        <div className="mt-4 p-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-blue-600" />
+          <span>{infoMessage}</span>
+        </div>
+      )}
+
       {/* Main Form Fields */}
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col pt-4 space-y-3">
         {/* From Row */}
@@ -305,7 +333,7 @@ export const EmailComposer: React.FC = () => {
           <div className="flex-1 relative">
             <select
               value={selectedSenderId}
-              onChange={(e) => setSelectedSenderId(e.target.value)}
+              onChange={handleSenderChange}
               className="w-full text-sm text-gray-900 bg-transparent py-1 pr-8 focus:outline-none cursor-pointer"
             >
               {senders.map((s) => (
@@ -313,9 +341,16 @@ export const EmailComposer: React.FC = () => {
                   {s.display_name} &lt;{s.email}&gt; {s.is_default ? '(Default)' : ''}
                 </option>
               ))}
+              <option value={ADD_SENDER_OPTION}>+ Add new sender...</option>
             </select>
           </div>
         </div>
+
+        <AddSenderModal
+          isOpen={isAddSenderOpen}
+          onClose={() => setIsAddSenderOpen(false)}
+          onCreated={handleSenderCreated}
+        />
 
         {/* To Row with Chips, Drag-and-Drop and Upload Button */}
         <div
@@ -371,9 +406,11 @@ export const EmailComposer: React.FC = () => {
               <input
                 type="number"
                 min="0"
-                max="3600"
+                max={MAX_DELAY_SECONDS}
                 value={delaySeconds}
-                onChange={(e) => setDelaySeconds(parseInt(e.target.value, 10) || 0)}
+                onChange={(e) =>
+                  setDelaySeconds(Math.min(MAX_DELAY_SECONDS, Math.max(0, parseInt(e.target.value, 10) || 0)))
+                }
                 className="w-16 px-2 py-1 bg-white border border-gray-200 rounded text-center text-xs font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
               <span className="text-gray-500">sec</span>
@@ -386,9 +423,11 @@ export const EmailComposer: React.FC = () => {
               <input
                 type="number"
                 min="1"
-                max="10000"
+                max={MAX_HOURLY_LIMIT}
                 value={hourlyLimit}
-                onChange={(e) => setHourlyLimit(parseInt(e.target.value, 10) || 1)}
+                onChange={(e) =>
+                  setHourlyLimit(Math.min(MAX_HOURLY_LIMIT, Math.max(1, parseInt(e.target.value, 10) || 1)))
+                }
                 className="w-20 px-2 py-1 bg-white border border-gray-200 rounded text-center text-xs font-medium text-gray-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               />
               <span className="text-gray-500">emails/hr</span>
@@ -405,7 +444,6 @@ export const EmailComposer: React.FC = () => {
             className="flex-1 p-4 text-sm text-gray-900 focus:outline-none overflow-y-auto leading-relaxed"
             data-placeholder="Write your email body here..."
           />
-          <AttachmentList attachments={attachments} onRemove={handleRemoveAttachment} />
         </div>
       </form>
     </div>

@@ -1,10 +1,17 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { Upload, CheckCircle, FileText } from 'lucide-react';
+import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
+import { fetchApi } from '@/lib/api';
+
+interface ParsedRecipientsResponse {
+  validEmails: string[];
+  invalidEntries: string[];
+  totalDetected: number;
+}
 
 interface RecipientUploaderProps {
-  onRecipientsUploaded: (emails: string[]) => void;
+  onRecipientsUploaded: (emails: string[], invalidCount: number) => void;
   detectedCount: number;
 }
 
@@ -13,37 +20,52 @@ export const RecipientUploader: React.FC<RecipientUploaderProps> = ({
   detectedCount,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [fileName, setFileName] = useState<string | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
-    setFileName(file.name);
+    if (!file.name.endsWith('.csv') && !file.name.endsWith('.txt')) {
+      setReadError('Only .csv or .txt files are supported.');
+      return;
+    }
+
+    setReadError(null);
     setIsParsing(true);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (content) {
-        // Parse emails
-        const emailRegex = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+/g;
-        const matches = content.match(emailRegex) || [];
-        const unique = Array.from(new Set(matches.map((m) => m.toLowerCase())));
-        onRecipientsUploaded(unique);
+      if (!content) {
+        setIsParsing(false);
+        return;
       }
-      setIsParsing(false);
+
+      try {
+        // Parse server-side via the same validated RecipientParser the backend
+        // uses when actually scheduling, so upload feedback matches what will
+        // really be accepted (header rows skipped, invalid entries reported).
+        const result = await fetchApi<ParsedRecipientsResponse>('/api/schedules/parse-recipients', {
+          method: 'POST',
+          body: JSON.stringify({ recipients: content }),
+        });
+        onRecipientsUploaded(result.validEmails, result.invalidEntries.length);
+      } catch (err: any) {
+        setReadError(err.message || 'Failed to parse recipient file.');
+      } finally {
+        setIsParsing(false);
+      }
     };
 
     reader.onerror = () => {
       setIsParsing(false);
-      alert('Failed to read recipient file.');
+      setReadError('Failed to read recipient file.');
     };
 
     reader.readAsText(file);
-    // Reset file input value so re-uploading same file works
-    e.target.value = '';
   };
 
   return (
@@ -70,6 +92,13 @@ export const RecipientUploader: React.FC<RecipientUploaderProps> = ({
         <div className="inline-flex items-center gap-1 text-xs text-emerald-700 font-medium">
           <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
           <span>{detectedCount} detected</span>
+        </div>
+      )}
+
+      {readError && (
+        <div className="inline-flex items-center gap-1 text-xs text-red-600 font-medium">
+          <AlertTriangle className="w-3.5 h-3.5" />
+          <span>{readError}</span>
         </div>
       )}
     </div>

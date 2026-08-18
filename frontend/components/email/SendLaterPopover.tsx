@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, X } from 'lucide-react';
 
 interface SendLaterPopoverProps {
@@ -22,6 +22,20 @@ export const SendLaterPopover: React.FC<SendLaterPopoverProps> = ({
     const pad = (n: number) => n.toString().padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   });
+
+  // Re-seed from the parent's last-committed value each time the popover opens,
+  // so a Cancel doesn't leave a stale uncommitted selection behind for next time.
+  useEffect(() => {
+    if (isOpen) {
+      const d = initialDate || new Date();
+      setSelectedTime(d);
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      setCustomDateTimeStr(
+        `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

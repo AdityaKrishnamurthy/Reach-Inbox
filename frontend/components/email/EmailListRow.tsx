@@ -94,12 +94,23 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({ email, searchQuery =
         </div>
 
         {/* Status Badge */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 flex items-center gap-2">
           <EmailStatusBadge
             status={email.status}
             scheduledAt={email.scheduledAt}
             failureReason={email.failureReason}
           />
+          {(email.status === 'sent' || email.status === 'failed') && email.sentAt && (
+            <span className="text-xs text-gray-400 whitespace-nowrap">
+              {new Date(email.sentAt).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+              })}
+            </span>
+          )}
         </div>
 
         {/* Subject & Preview Snippet */}

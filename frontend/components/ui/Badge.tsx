@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Clock, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface ScheduledBadgeProps {
   timestamp: string | Date;
@@ -27,9 +27,8 @@ export const ScheduledBadge: React.FC<ScheduledBadgeProps> = ({ timestamp }) => 
 
 export const SentBadge: React.FC = () => {
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-      <CheckCircle2 className="w-3 h-3 text-gray-500" />
-      <span>Sent</span>
+    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+      Sent
     </span>
   );
 };

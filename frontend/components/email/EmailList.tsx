@@ -14,6 +14,7 @@ interface EmailListProps {
   emptyDescription: string;
   page: number;
   totalPages: number;
+  totalResults?: number;
   searchQuery?: string;
   onPageChange: (newPage: number) => void;
   onRetry?: () => void;
@@ -29,6 +30,7 @@ export const EmailList: React.FC<EmailListProps> = ({
   emptyDescription,
   page,
   totalPages,
+  totalResults = 0,
   searchQuery = '',
   onPageChange,
   onRetry,
@@ -80,13 +82,18 @@ export const EmailList: React.FC<EmailListProps> = ({
         ))}
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="py-4 px-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-white">
-          <div>
-            Page {page} of {totalPages}
-          </div>
+      {/* Result Count & Pagination Controls */}
+      <div className="py-4 px-6 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-white">
+        <div>
+          {totalResults > 0
+            ? `Showing ${emails.length} of ${totalResults} result${totalResults === 1 ? '' : 's'}`
+            : null}
+        </div>
+        {totalPages > 1 && (
           <div className="flex items-center gap-2">
+            <span>
+              Page {page} of {totalPages}
+            </span>
             <button
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
@@ -102,8 +109,8 @@ export const EmailList: React.FC<EmailListProps> = ({
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

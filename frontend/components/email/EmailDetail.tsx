@@ -7,8 +7,6 @@ import {
   Star,
   ExternalLink,
   Mail,
-  Archive,
-  Trash2,
   ChevronDown,
 } from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
@@ -45,7 +43,6 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
   const { user } = useAuth();
   const [isStarred, setIsStarred] = useState(false);
   const [showRecipientDetails, setShowRecipientDetails] = useState(false);
-  const [actionNotice, setActionNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setIsStarred(isEmailStarred(email.id));
@@ -87,16 +84,6 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
       minute: '2-digit',
       hour12: true,
     });
-  };
-
-  const handleArchive = () => {
-    setActionNotice('Email moved to archive.');
-    setTimeout(() => setActionNotice(null), 3000);
-  };
-
-  const handleDelete = () => {
-    setActionNotice('Email removed from active view.');
-    setTimeout(() => setActionNotice(null), 3000);
   };
 
   const normalizeEmailHtml = (rawHtml: string) => {
@@ -165,26 +152,6 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
             <Star className={`w-4 h-4 ${isStarred ? 'fill-amber-400' : ''}`} />
           </button>
 
-          {/* Archive Action */}
-          <button
-            type="button"
-            onClick={handleArchive}
-            className="p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-            title="Archive"
-          >
-            <Archive className="w-4 h-4" />
-          </button>
-
-          {/* Trash Action */}
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="p-2 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Delete"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-
           <div className="w-[1px] h-5 bg-gray-200 mx-1" />
 
           {/* User Avatar */}
@@ -203,12 +170,6 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
           )}
         </div>
       </div>
-
-      {actionNotice && (
-        <div className="p-3 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg text-xs animate-in fade-in">
-          {actionNotice}
-        </div>
-      )}
 
       {/* Sender / Recipient Metadata Card */}
       <div className="flex items-start justify-between py-2">

@@ -29,6 +29,8 @@ export const LoginCard: React.FC<LoginCardProps> = ({ errorMessage }) => {
         <div className="mb-5 p-3 text-xs bg-red-50 text-red-700 border border-red-200 rounded-md">
           {errorMessage === 'oauth_config_missing'
             ? 'Google OAuth credentials not configured on backend (.env).'
+            : errorMessage === 'oauth_failed'
+            ? 'Google sign-in was cancelled or failed. Please try again.'
             : errorMessage === 'auth_failed'
             ? 'Authentication failed. Please try again.'
             : errorMessage}

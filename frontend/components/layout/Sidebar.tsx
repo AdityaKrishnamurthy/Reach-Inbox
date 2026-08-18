@@ -8,11 +8,7 @@ import { fetchApi } from '@/lib/api';
 import { Clock, Send, ChevronDown, LogOut, Plus, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 
-interface SidebarProps {
-  countsRefreshTrigger?: number;
-}
-
-export const Sidebar: React.FC<SidebarProps> = ({ countsRefreshTrigger }) => {
+export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const [counts, setCounts] = useState<{ scheduled: number; sent: number }>({ scheduled: 0, sent: 0 });
@@ -43,7 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ countsRefreshTrigger }) => {
       clearInterval(interval);
       window.removeEventListener('reachinbox:refresh-counts', handleCustomRefresh);
     };
-  }, [pathname, countsRefreshTrigger]);
+  }, [pathname]);
 
   const isScheduledActive = pathname === '/dashboard' || pathname === '/dashboard/scheduled';
   const isSentActive = pathname === '/dashboard/sent';
@@ -181,11 +177,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ countsRefreshTrigger }) => {
             </span>
           </Link>
         </div>
-      </div>
-
-      {/* Footer Info */}
-      <div className="p-4 border-t border-gray-100 text-[11px] text-gray-400 text-center">
-        ReachInbox Email Scheduler
       </div>
     </aside>
   );
