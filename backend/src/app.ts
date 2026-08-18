@@ -2,6 +2,8 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { config } from './config/env';
+import { checkDbConnection } from './db';
+import { redis } from './config/redis';
 
 export const createApp = (): Express => {
   const app = express();
@@ -16,12 +18,31 @@ export const createApp = (): Express => {
   app.use(cookieParser());
 
   // Health check endpoint
-  app.get('/api/health', (req: Request, res: Response) => {
+  app.get('/api/health', async (req: Request, res: Response) => {
+    let dbStatus = 'unknown';
+    let redisStatus = 'unknown';
+
+    try {
+      const dbOk = await checkDbConnection();
+      dbStatus = dbOk ? 'connected' : 'disconnected';
+    } catch {
+      dbStatus = 'error';
+    }
+
+    try {
+      const pingRes = await redis.ping();
+      redisStatus = pingRes === 'PONG' ? 'connected' : 'disconnected';
+    } catch {
+      redisStatus = 'error';
+    }
+
     res.json({
       status: 'ok',
       service: 'reachinbox-scheduler-api',
       timestamp: new Date().toISOString(),
       environment: config.nodeEnv,
+      db: dbStatus,
+      redis: redisStatus,
     });
   });
 
