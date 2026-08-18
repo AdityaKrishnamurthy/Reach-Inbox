@@ -7,7 +7,7 @@
     "backend"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=backend & npm run dev --workspace=frontend",
+    "dev": "concurrently -n backend,frontend -c green,cyan \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm run dev --workspace=backend",
     "dev:frontend": "npm run dev --workspace=frontend",
     "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
@@ -19,5 +19,7 @@
     "lint": "npm run lint --workspace=frontend",
     "test": "npm run test --workspace=backend --if-present"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
 }

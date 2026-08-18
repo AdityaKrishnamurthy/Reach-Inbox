@@ -18,7 +18,7 @@ for (const res of allResults) {
     console.log(`  ✅ PASS: ${res.name}`);
     passedCount++;
   } else {
-    console.log(`  ❌ FAIL: ${res.name} — ${res.error}`);
+    console.log(`  ❌ FAIL: ${res.name} - ${res.error}`);
     failedCount++;
   }
 }
