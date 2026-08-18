@@ -1,16 +1,13 @@
-import fs from 'fs';
-import path from 'path';
 import { pool, query } from './index';
 import { config } from '../config/env';
+import { SCHEMA_SQL } from './schema-sql';
 
 export const runMigrations = async (): Promise<void> => {
   console.log('[Migration] Starting database migration...');
-  const schemaPath = path.resolve(__dirname, 'schema.sql');
-  const schemaSql = fs.readFileSync(schemaPath, 'utf8');
 
   try {
     // Run schema DDL
-    await pool.query(schemaSql);
+    await pool.query(SCHEMA_SQL);
     console.log('[Migration] Schema tables and triggers applied successfully.');
 
     // Seed default sender if none exists
