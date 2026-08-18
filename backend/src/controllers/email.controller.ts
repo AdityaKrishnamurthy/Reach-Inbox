@@ -1,7 +1,36 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { EmailService } from '../services/email.service';
 
+const byIdsSchema = z.object({
+  ids: z.array(z.string().uuid()).max(500),
+});
+
 export class EmailController {
+  /**
+   * POST /api/emails/by-ids - used by the client-side Starred view
+   */
+  static async getByIds(req: Request, res: Response): Promise<void> {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const parseResult = byIdsSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        res.status(400).json({ error: 'Invalid request', details: parseResult.error.flatten().fieldErrors });
+        return;
+      }
+
+      const emails = await EmailService.getEmailsByIds(req.user.id, parseResult.data.ids);
+      res.json({ data: emails });
+    } catch (error: any) {
+      console.error('[Get Emails By Ids Error]:', error);
+      res.status(500).json({ error: 'Failed to retrieve starred emails' });
+    }
+  }
+
   /**
    * GET /api/emails/scheduled
    */

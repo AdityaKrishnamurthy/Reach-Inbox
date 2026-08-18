@@ -431,30 +431,65 @@ export class EmailService {
   }
 
   /**
-   * Retrieves summary counts for the sidebar (scheduled count, sent count)
+   * Retrieves summary counts for the sidebar nav badges
    */
-  static async getEmailCounts(userId: string): Promise<{ scheduled: number; sent: number }> {
-    const scheduledRes = await query(
-      `SELECT COUNT(*) as count
+  static async getEmailCounts(
+    userId: string
+  ): Promise<{ scheduled: number; sent: number; archived: number; trash: number }> {
+    const res = await query(
+      `SELECT
+         COUNT(*) FILTER (WHERE se.status IN ('scheduled', 'processing') AND se.is_archived = FALSE AND se.is_deleted = FALSE) AS scheduled,
+         COUNT(*) FILTER (WHERE se.status = 'sent' AND se.is_archived = FALSE AND se.is_deleted = FALSE) AS sent,
+         COUNT(*) FILTER (WHERE se.is_archived = TRUE AND se.is_deleted = FALSE) AS archived,
+         COUNT(*) FILTER (WHERE se.is_deleted = TRUE) AS trash
        FROM scheduled_emails se
        JOIN campaigns c ON se.campaign_id = c.id
-       WHERE c.user_id = $1 AND se.status IN ('scheduled', 'processing')
-         AND se.is_archived = FALSE AND se.is_deleted = FALSE`,
+       WHERE c.user_id = $1`,
       [userId]
     );
 
-    const sentRes = await query(
-      `SELECT COUNT(*) as count
-       FROM scheduled_emails se
-       JOIN campaigns c ON se.campaign_id = c.id
-       WHERE c.user_id = $1 AND se.status = 'sent'
-         AND se.is_archived = FALSE AND se.is_deleted = FALSE`,
-      [userId]
-    );
-
+    const row = res.rows[0] || {};
     return {
-      scheduled: parseInt(scheduledRes.rows[0].count, 10) || 0,
-      sent: parseInt(sentRes.rows[0].count, 10) || 0,
+      scheduled: parseInt(row.scheduled, 10) || 0,
+      sent: parseInt(row.sent, 10) || 0,
+      archived: parseInt(row.archived, 10) || 0,
+      trash: parseInt(row.trash, 10) || 0,
     };
+  }
+
+  /**
+   * Retrieves a specific set of emails by id (used for the client-side
+   * "Starred" view - starring is a localStorage-only concept, so the client
+   * supplies the ids it has starred and this returns whichever of them still
+   * exist and belong to the user).
+   */
+  static async getEmailsByIds(userId: string, ids: string[]): Promise<EmailRowDto[]> {
+    if (ids.length === 0) return [];
+
+    const res = await query(
+      `SELECT
+        se.id,
+        se.campaign_id AS "campaignId",
+        se.recipient_email AS "recipientEmail",
+        c.subject,
+        SUBSTRING(c.body FROM 1 FOR 140) AS "bodyPreview",
+        se.status,
+        se.scheduled_at AS "scheduledAt",
+        se.sent_at AS "sentAt",
+        se.failure_reason AS "failureReason",
+        se.ethereal_preview_url AS "etherealPreviewUrl",
+        se.attempts,
+        COALESCE(s.display_name, 'Default Sender') AS "senderName",
+        COALESCE(s.email, 'sender@reachinbox.test') AS "senderEmail",
+        se.created_at AS "createdAt"
+      FROM scheduled_emails se
+      JOIN campaigns c ON se.campaign_id = c.id
+      LEFT JOIN senders s ON c.sender_id = s.id
+      WHERE se.id = ANY($1::uuid[]) AND c.user_id = $2
+      ORDER BY se.updated_at DESC`,
+      [ids, userId]
+    );
+
+    return res.rows;
   }
 }

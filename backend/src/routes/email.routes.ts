@@ -9,6 +9,7 @@ router.get('/sent', requireAuth, EmailController.getSent);
 router.get('/archived', requireAuth, EmailController.getArchived);
 router.get('/trash', requireAuth, EmailController.getTrash);
 router.get('/counts', requireAuth, EmailController.getCounts);
+router.post('/by-ids', requireAuth, EmailController.getByIds);
 
 router.patch('/:id/archive', requireAuth, EmailController.archive);
 router.patch('/:id/unarchive', requireAuth, EmailController.unarchive);
