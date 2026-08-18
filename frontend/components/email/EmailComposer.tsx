@@ -441,7 +441,7 @@ export const EmailComposer: React.FC = () => {
           <div
             ref={editorRef}
             contentEditable
-            className="flex-1 p-4 text-sm text-gray-900 focus:outline-none overflow-y-auto leading-relaxed"
+            className="email-body-content flex-1 p-4 text-sm text-gray-900 focus:outline-none overflow-y-auto leading-relaxed"
             data-placeholder="Write your email body here..."
           />
         </div>
