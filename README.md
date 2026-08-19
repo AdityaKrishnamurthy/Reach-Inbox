@@ -4,7 +4,7 @@
 
 ### Full-Stack Email Job Scheduler & Dashboard
 
-A cold-email scheduler and dashboard built with **Next.js**, **Express.js**, **PostgreSQL**, **Redis**, **BullMQ**, and **Ethereal Email SMTP**. Schedule emails, and they still get sent on time even if the server restarts.
+A cold-email scheduler and dashboard built with **Next.js**, **Express.js**, **PostgreSQL**, **Redis**, **BullMQ**, and **Ethereal Email SMTP**. Schedule emails and they'll still be sent on time — even if the server restarts.
 
 </div>
 
@@ -45,7 +45,7 @@ Watch the feature walkthrough covering scheduling, the dashboard, and a live res
 | Backend | Node.js, Express.js, TypeScript | REST API server |
 | Queue / Scheduler | BullMQ + Redis | Durable delayed job scheduling (strictly zero cron jobs) |
 | Database | PostgreSQL 16 | Relational persistence with connection pooling |
-| Email Provider | Ethereal Email SMTP | Sandboxed test email delivery with preview links |
+| Email Provider | Ethereal Email SMTP | Sandboxed test email delivery; a preview URL is captured for every send |
 | Local Infrastructure | Docker Compose | Local PostgreSQL & Redis containers |
 
 ---
@@ -57,7 +57,7 @@ Watch the feature walkthrough covering scheduling, the dashboard, and a live res
 | Requirement | Notes |
 |---|---|
 | Node.js | v18 or newer |
-| Docker Desktop | Running locally, or local PostgreSQL & Redis services |
+| Docker Desktop | Used to run PostgreSQL & Redis locally, or provide your own standalone installations |
 
 ### Step 1 — Environment Variables & Ethereal Setup
 
@@ -109,7 +109,7 @@ SMTP_FROM_EMAIL=demo@reachinbox.test
 NEXT_PUBLIC_API_URL=http://localhost:5000
 ```
 
-> **Ethereal Setup Note:** If `SMTP_USER` and `SMTP_PASS` are left empty, the application automatically provisions an ephemeral Ethereal test account on the fly and generates preview links.
+> **Ethereal Setup Note:** If `SMTP_USER` and `SMTP_PASS` are left empty, the application automatically provisions an ephemeral Ethereal test account on the fly and captures a preview URL for each send.
 
 ### Step 2 — Start Infrastructure (PostgreSQL & Redis)
 
@@ -171,7 +171,7 @@ Or run each service in its own terminal:
 
 ## 5. Deployment
 
-The app runs on a few free-tier platforms, with the backend API and the BullMQ worker sharing a single Node process so we don't need two separate services.
+The app runs on a few free-tier platforms, with the backend API and the BullMQ worker sharing a single Node process, avoiding the need for two separate services.
 
 | Component | Platform | Role |
 |---|---|---|
@@ -181,7 +181,7 @@ The app runs on a few free-tier platforms, with the backend API and the BullMQ w
 | Redis | Upstash (Serverless, TLS) | BullMQ delayed job queue and rate-limit counters |
 | DNS | Custom domain, one subdomain per service | Frontend and backend share the same root domain so auth cookies stay first-party |
 | Auth | Google OAuth 2.0 | Authorized JavaScript origins and redirect URIs set per environment |
-| Uptime | UptimeRobot | Pings the API's health endpoint every 5 minutes so the free-tier backend doesn't spin down from inactivity |
+| Uptime | UptimeRobot | Pings the Render-hosted API's health endpoint every 5 minutes so Render's free-tier web service doesn't spin down from inactivity |
 
 Secrets (database URL, Redis URL, OAuth credentials, session secret) live in each platform's environment variable dashboard, never in source control.
 
@@ -197,7 +197,7 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 | Persistence | Campaign and recipient state is written to PostgreSQL *before* the job is enqueued, so it survives a restart even if the enqueue step never runs; a boot-time reconciliation pass re-enqueues any row left without a matching job |
 | Rate Limiting | Redis-backed hourly counters keyed by `sender + hour window`, enforced with an atomic Lua script so concurrent workers can't over-count; jobs that would exceed the limit roll into the next hour instead of failing |
 | Concurrency | BullMQ worker concurrency is configurable via `WORKER_CONCURRENCY`, with a minimum inter-email delay (`DEFAULT_DELAY_MS`) enforced per sender to mimic provider throttling |
-| Email Sending | Nodemailer over Ethereal SMTP, idempotent per job ID so retries can't double-send, with preview-link generation and multi-sender support |
+| Email Sending | Nodemailer over Ethereal SMTP, idempotent per job ID so retries can't double-send, with a preview URL captured per send and multi-sender support |
 | Auth | Real Google OAuth 2.0 exchange, user profile upsert, and secure HttpOnly JWT session cookies (`/api/auth/*`) |
 
 ### Frontend
@@ -216,7 +216,7 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 | # | Assumption / Trade-off | Rationale |
 |---|---|---|
-| 1 | Email Sandbox | Ethereal Email SMTP is used as required, so no real mail ever goes out. A successful send gives you a preview link; if outbound SMTP is blocked by a local network/firewall, it falls back to a simulated send so the dashboard still shows the full email. |
+| 1 | Email Sandbox | Ethereal Email SMTP is used as required, so no real mail is ever sent. Each send that goes through captures a preview URL on the record (visible in server logs and stored in the database, though not linked from the UI). If outbound SMTP is blocked by a local network or firewall, sending falls back to a simulated delivery so the dashboard still reflects the full email content. |
 | 2 | Rate limit overflow | If the hourly limit is hit, jobs get pushed to the next hour window instead of being dropped or rejected. |
 | 3 | Database & queue separation | PostgreSQL is the source of truth for email records and campaigns; Redis just handles the delayed queue. |
 
@@ -224,4 +224,4 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 ## 8. AI Usage & Architecture Note
 
-Built using an AI-assisted spec-and-execution workflow: `PRD.md` and `DESIGN.md` set the requirements and visual scope up front, `AGENTS.md` governed how the agent worked (drift checks before each step, no silent fixes, one commit per completed milestone), and implementation followed numbered milestone plans (`plans/001`–`008`, tracked in `plans/PLANS.md`).
+Built using an AI-assisted spec-and-execution workflow: `PRD.md` and `DESIGN.md` set the requirements and visual scope up front; `AGENTS.md` governed how the agent worked (drift checks before each step, no silent fixes, one commit per completed milestone); and implementation followed numbered milestone plans (`plans/001`–`008`, tracked in `plans/PLANS.md`).
