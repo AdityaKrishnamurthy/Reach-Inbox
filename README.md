@@ -12,17 +12,30 @@ A cold-email scheduler and dashboard built with **Next.js**, **Express.js**, **P
 
 ## Contents
 
-1. [Tech Stack](#1-tech-stack)
-2. [Local Setup & How to Run](#2-local-setup--how-to-run)
-3. [Architecture Overview](#3-architecture-overview)
-4. [Deployment](#4-deployment)
-5. [Implemented Features Map](#5-implemented-features-map)
-6. [Assumptions & Trade-offs](#6-assumptions--trade-offs)
-7. [AI Usage & Architecture Note](#7-ai-usage--architecture-note)
+1. [Demo Video](#1-demo-video)
+2. [Tech Stack](#2-tech-stack)
+3. [Local Setup & How to Run](#3-local-setup--how-to-run)
+4. [Architecture Overview](#4-architecture-overview)
+5. [Deployment](#5-deployment)
+6. [Implemented Features Map](#6-implemented-features-map)
+7. [Assumptions & Trade-offs](#7-assumptions--trade-offs)
+8. [AI Usage & Architecture Note](#8-ai-usage--architecture-note)
 
 ---
 
-## 1. Tech Stack
+## 1. Demo Video
+
+Watch the feature walkthrough covering scheduling, the dashboard, and a live restart scenario:
+
+<a href="https://youtu.be/WUhHIoa0FJI" target="_blank" rel="noopener noreferrer">
+  <img src="https://i.ytimg.com/vi/WUhHIoa0FJI/maxresdefault.jpg" alt="Reach-Inbox Demo Video" width="100%" />
+</a>
+
+👉 <a href="https://youtu.be/WUhHIoa0FJI" target="_blank" rel="noopener noreferrer"><strong>Watch Demo Video on YouTube</strong></a>
+
+---
+
+## 2. Tech Stack
 
 | Layer | Technology | Purpose |
 |---|---|---|
@@ -37,7 +50,7 @@ A cold-email scheduler and dashboard built with **Next.js**, **Express.js**, **P
 
 ---
 
-## 2. Local Setup & How to Run
+## 3. Local Setup & How to Run
 
 ### Prerequisites
 
@@ -129,7 +142,7 @@ Or run each service in its own terminal:
 
 ---
 
-## 3. Architecture Overview
+## 4. Architecture Overview
 
 ### A. How Scheduling Works (Zero Cron)
 
@@ -156,7 +169,7 @@ Or run each service in its own terminal:
 
 ---
 
-## 4. Deployment
+## 5. Deployment
 
 The app runs on a few free-tier platforms, with the backend API and the BullMQ worker sharing a single Node process so we don't need two separate services.
 
@@ -174,7 +187,7 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 ---
 
-## 5. Implemented Features Map
+## 6. Implemented Features Map
 
 ### Backend
 
@@ -199,7 +212,7 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 ---
 
-## 6. Assumptions & Trade-offs
+## 7. Assumptions & Trade-offs
 
 | # | Assumption / Trade-off | Rationale |
 |---|---|---|
@@ -209,6 +222,6 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 ---
 
-## 7. AI Usage & Architecture Note
+## 8. AI Usage & Architecture Note
 
 Built using an AI-assisted spec-and-execution workflow: `PRD.md` and `DESIGN.md` set the requirements and visual scope up front, `AGENTS.md` governed how the agent worked (drift checks before each step, no silent fixes, one commit per completed milestone), and implementation followed numbered milestone plans (`plans/001`–`008`, tracked in `plans/PLANS.md`).
