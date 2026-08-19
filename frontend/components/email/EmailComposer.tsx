@@ -1,5 +1,11 @@
 'use client';
 
+// Main campaign composer: sender selection, recipient chips/CSV upload, a
+// contenteditable rich-text body, and the send-time/delay/hourly-limit
+// scheduling controls. Submits one POST to /api/schedules carrying a stable
+// per-session idempotency key so retries or double-clicks can't create
+// duplicate campaigns.
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -155,12 +161,143 @@ export const EmailComposer: React.FC = () => {
     }
   };
 
+  // Lists let you press Enter forever and only exit on a second Enter on an
+  // empty line - that's native contenteditable behavior for <ul>/<ol>. Quote
+  // blocks don't get the same native handling, so pressing Enter just keeps
+  // extending the same <blockquote> indefinitely. This replicates the same
+  // "second Enter on an empty line exits" behavior for blockquotes: it splits
+  // the blank trailing line out into a plain paragraph after the quote.
+  const handleEditorKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || !selection.isCollapsed) return;
+
+    const range = selection.getRangeAt(0);
+    let node: Node | null = range.startContainer;
+    let blockquote: HTMLElement | null = null;
+    while (node && node !== editorRef.current) {
+      if (node instanceof HTMLElement && node.tagName === 'BLOCKQUOTE') {
+        blockquote = node;
+        break;
+      }
+      node = node.parentNode;
+    }
+    if (!blockquote) return;
+
+    const { startContainer, startOffset } = range;
+    const isEmptyLine =
+      startContainer.nodeType === Node.TEXT_NODE
+        ? (startContainer.textContent || '').trim().length === 0
+        : (() => {
+            const prev = startContainer.childNodes[startOffset - 1];
+            return !prev || prev.nodeName === 'BR';
+          })();
+
+    if (!isEmptyLine) return;
+
+    e.preventDefault();
+
+    // Drop the blank trailing line from inside the quote.
+    if (startContainer.nodeType === Node.TEXT_NODE) {
+      startContainer.parentNode?.removeChild(startContainer);
+    } else {
+      const prev = startContainer.childNodes[startOffset - 1];
+      prev?.parentNode?.removeChild(prev);
+    }
+
+    // Start a fresh, unquoted paragraph right after the blockquote.
+    const nextLine = document.createElement('div');
+    nextLine.appendChild(document.createElement('br'));
+    blockquote.insertAdjacentElement('afterend', nextLine);
+
+    if (!blockquote.textContent?.trim()) {
+      blockquote.remove();
+    }
+
+    const newRange = document.createRange();
+    newRange.setStart(nextLine, 0);
+    newRange.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+  };
+
+  // Pasting a bare URL turns it into a real, clickable link immediately -
+  // there's no toolbar button for this, it just happens on paste. Built via
+  // DOM nodes (not an HTML string) so pasted text can never be parsed as markup.
+  const handleEditorPaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const text = e.clipboardData.getData('text/plain').trim();
+    if (!/^https?:\/\/\S+$/i.test(text)) return;
+
+    e.preventDefault();
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+
+    const link = document.createElement('a');
+    link.href = text;
+    link.textContent = text;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    range.insertNode(link);
+
+    range.setStartAfter(link);
+    range.setEndAfter(link);
+    selection.removeAllRanges();
+    selection.addRange(range);
+  };
+
+  // Safety net for URLs that were typed rather than pasted, or pasted as
+  // part of a larger block of text: walks the body's text nodes right before
+  // submit and turns any bare http(s) URL into a real <a> tag.
+  const linkifyPlainUrls = (root: HTMLElement) => {
+    const urlPattern = /https?:\/\/[^\s<]+[^\s<.,;:!?'")\]]/gi;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    const textNodes: Text[] = [];
+    let current: Node | null;
+    while ((current = walker.nextNode())) {
+      if ((current as Text).parentElement?.closest('a')) continue;
+      if (urlPattern.test(current.textContent || '')) {
+        textNodes.push(current as Text);
+      }
+      urlPattern.lastIndex = 0;
+    }
+
+    textNodes.forEach((textNode) => {
+      const text = textNode.textContent || '';
+      const frag = document.createDocumentFragment();
+      let lastIndex = 0;
+      let match: RegExpExecArray | null;
+      urlPattern.lastIndex = 0;
+      while ((match = urlPattern.exec(text))) {
+        const url = match[0];
+        if (match.index > lastIndex) {
+          frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
+        }
+        const link = document.createElement('a');
+        link.href = url;
+        link.textContent = url;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        frag.appendChild(link);
+        lastIndex = match.index + url.length;
+      }
+      frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+      textNode.parentNode?.replaceChild(frag, textNode);
+    });
+  };
+
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
     setSuccessMessage(null);
 
+    if (editorRef.current) {
+      linkifyPlainUrls(editorRef.current);
+    }
     const bodyHtml = editorRef.current?.innerHTML || '';
 
     // Validations
@@ -441,6 +578,8 @@ export const EmailComposer: React.FC = () => {
           <div
             ref={editorRef}
             contentEditable
+            onKeyDown={handleEditorKeyDown}
+            onPaste={handleEditorPaste}
             className="email-body-content flex-1 p-4 text-sm text-gray-900 focus:outline-none overflow-y-auto leading-relaxed"
             data-placeholder="Write your email body here..."
           />
