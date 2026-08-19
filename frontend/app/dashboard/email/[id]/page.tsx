@@ -1,5 +1,9 @@
 'use client';
 
+// Single email detail route ("/dashboard/email/[id]"). Fetches one email
+// record by ID from the backend and renders it via EmailDetail, with
+// loading and not-found/error states handled inline.
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { EmailDetail, EmailDetailData } from '@/components/email/EmailDetail';

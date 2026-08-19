@@ -1,3 +1,8 @@
+// Small typed HTTP client used by every frontend component to talk to the
+// Express backend. Centralizes the API base URL, default JSON headers,
+// cookie-based credentials, and translation of non-OK responses into a
+// typed ApiError (including field-level validation errors).
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 export interface ApiResponse<T = any> {

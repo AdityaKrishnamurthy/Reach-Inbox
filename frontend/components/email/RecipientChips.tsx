@@ -1,5 +1,9 @@
 'use client';
 
+// Chip-based recipient input for the compose form. Lets a user type, paste,
+// or bulk-add comma/newline/semicolon-separated email addresses, validating
+// each one client-side before it becomes a removable chip.
+
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
 

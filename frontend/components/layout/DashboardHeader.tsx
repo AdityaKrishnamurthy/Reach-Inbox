@@ -1,5 +1,10 @@
 'use client';
 
+// Shared header used at the top of each email list view (Scheduled/Sent/
+// Archived/Trash/Starred). Provides a debounced search input, a status/sort
+// filter popover, and a manual refresh button, reporting changes back up via
+// callback props rather than owning any list data itself.
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, SlidersHorizontal, RotateCw, X, Check } from 'lucide-react';
 

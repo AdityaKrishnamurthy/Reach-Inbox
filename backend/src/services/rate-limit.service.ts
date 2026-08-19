@@ -1,3 +1,9 @@
+// Redis-backed, per-sender rate limiting shared by all worker processes.
+// Enforces both a rolling hourly send cap (atomic INCR-based counter per
+// UTC hour) and a minimum delay between consecutive sends (atomic Lua-script
+// slot reservation), so concurrent workers never race each other into
+// exceeding either limit.
+
 import { redis } from '../config/redis';
 
 // Atomically reserves the next allowed send slot: KEYS[1]=lastSendKey,

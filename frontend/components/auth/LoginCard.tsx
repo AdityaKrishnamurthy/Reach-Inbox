@@ -1,5 +1,10 @@
 'use client';
 
+// Login page card. Renders the real Google OAuth button plus a non-functional
+// email/password form that only exists to match the Figma visual design; the
+// form shows a notice telling the user to use Google login instead of
+// actually authenticating.
+
 import React, { useState } from 'react';
 import { GoogleLoginButton } from './GoogleLoginButton';
 

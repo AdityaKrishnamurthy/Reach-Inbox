@@ -1,3 +1,7 @@
+// Routes for creating a new email campaign schedule and for validating/
+// parsing an uploaded recipient list before submission. Mounted at
+// /api/schedules.
+
 import { Router } from 'express';
 import { ScheduleController } from '../controllers/schedule.controller';
 import { requireAuth } from '../middleware/auth';

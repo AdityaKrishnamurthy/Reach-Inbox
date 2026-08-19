@@ -1,3 +1,7 @@
+// HTTP handlers for the Google OAuth flow: redirecting to Google's consent
+// page, handling the callback (token exchange, user upsert, session cookie),
+// and reading/clearing the current session.
+
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { config } from '../config/env';

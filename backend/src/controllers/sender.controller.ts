@@ -1,3 +1,8 @@
+// HTTP handlers for listing active sender identities and creating new ones.
+// A sender with no explicit SMTP credentials falls back to the shared
+// default Ethereal test account, but still gets its own independent
+// rate-limit and delay counters in Redis.
+
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { query } from '../db';

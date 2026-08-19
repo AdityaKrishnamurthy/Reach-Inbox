@@ -1,5 +1,10 @@
 'use client';
 
+// Modal popover for picking a scheduled send time in the compose flow.
+// Offers quick presets (tomorrow morning, in 2 hours, etc.) plus a custom
+// datetime-local input, and commits the chosen Date back to the parent only
+// when the user clicks Done.
+
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, X } from 'lucide-react';
 

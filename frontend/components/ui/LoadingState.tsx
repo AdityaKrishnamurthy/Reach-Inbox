@@ -1,3 +1,7 @@
+// Generic skeleton loader: renders a configurable number of pulsing
+// placeholder rows, used while email lists and detail views are fetching
+// data from the backend.
+
 import React from 'react';
 
 export const LoadingState: React.FC<{ rows?: number }> = ({ rows = 5 }) => {

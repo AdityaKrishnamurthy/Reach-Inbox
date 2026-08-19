@@ -1,3 +1,8 @@
+// Raw DDL for the application's PostgreSQL schema: users, senders,
+// campaigns, and scheduled_emails tables plus their updated_at triggers and
+// lookup indexes. Written with IF NOT EXISTS/ADD COLUMN IF NOT EXISTS guards
+// so it can be re-run safely as a lightweight migration on every boot.
+
 export const SCHEMA_SQL = `
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";

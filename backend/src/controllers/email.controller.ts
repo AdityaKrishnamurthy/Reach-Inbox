@@ -1,3 +1,9 @@
+// HTTP handlers backing every email list/detail view in the frontend
+// (Scheduled, Sent, Archived, Trash, Starred lookup by ID, sidebar counts,
+// and single-email detail), plus the archive/unarchive/soft-delete/restore/
+// permanent-delete mutations. All authorization is scoped to req.user.id;
+// business logic lives in EmailService.
+
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import { EmailService } from '../services/email.service';

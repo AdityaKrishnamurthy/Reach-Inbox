@@ -1,3 +1,9 @@
+// BullMQ producer side for the email-send queue: defines the queue with
+// retry/backoff defaults, and exposes helpers to enqueue a delayed send job
+// (keyed by the scheduled_emails row id so re-enqueues are naturally
+// deduplicated), best-effort cancel a not-yet-run job, and read queue
+// metrics.
+
 import { Queue, JobsOptions } from 'bullmq';
 import { createRedisConnection } from '../config/redis';
 import { EmailJobData } from '../types/db';

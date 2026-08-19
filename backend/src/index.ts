@@ -1,3 +1,8 @@
+// Backend process entry point. Runs database migrations, starts the HTTP
+// server and the BullMQ email worker, reconciles any scheduled email rows
+// that were persisted but never got enqueued (e.g. after a crash), and
+// handles graceful shutdown on SIGTERM/SIGINT.
+
 import { createApp } from './app';
 import { config } from './config/env';
 import { startEmailWorker, stopEmailWorker } from './worker/email.worker';

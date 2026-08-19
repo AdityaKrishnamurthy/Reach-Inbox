@@ -1,3 +1,8 @@
+// Centralized environment configuration for the backend. Loads .env files
+// and exposes a single typed config object (server, database, Redis,
+// session, Google OAuth, worker, and SMTP settings) so the rest of the app
+// never reads process.env directly.
+
 import dotenv from 'dotenv';
 import path from 'path';
 

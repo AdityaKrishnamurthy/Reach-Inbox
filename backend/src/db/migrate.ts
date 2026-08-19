@@ -1,3 +1,8 @@
+// Applies the database schema (tables, triggers, indexes) on startup and
+// seeds a default sender if none exists yet, so a fresh Postgres instance is
+// immediately usable. Can also be run directly via the CLI for manual
+// migration.
+
 import { pool, query } from './index';
 import { config } from '../config/env';
 import { SCHEMA_SQL } from './schema-sql';

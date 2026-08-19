@@ -1,5 +1,9 @@
 'use client';
 
+// Compose route ("/dashboard/compose"). Thin wrapper page that mounts the
+// EmailComposer, which holds the actual rich-text editor, recipient upload,
+// sender selection, and scheduling controls.
+
 import React from 'react';
 import { EmailComposer } from '@/components/email/EmailComposer';
 

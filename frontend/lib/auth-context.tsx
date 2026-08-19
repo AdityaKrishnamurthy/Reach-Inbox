@@ -1,5 +1,10 @@
 'use client';
 
+// React context that holds the current authenticated user, backed by the
+// backend's session cookie. Fetches /api/auth/me on mount to resolve the
+// session, and exposes logout plus a manual refreshUser for callers that
+// need to re-sync after an auth-affecting action.
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { fetchApi } from './api';
 

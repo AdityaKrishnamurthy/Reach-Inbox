@@ -1,5 +1,10 @@
 'use client';
 
+// CSV/text recipient list upload control for the compose page. Reads the
+// selected file client-side and sends its raw contents to the backend's
+// recipient parser so validation matches exactly what scheduling will
+// accept, then reports back the valid emails and invalid-entry count.
+
 import React, { useRef, useState } from 'react';
 import { Upload, CheckCircle, AlertTriangle } from 'lucide-react';
 import { fetchApi } from '@/lib/api';

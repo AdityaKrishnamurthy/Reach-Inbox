@@ -1,3 +1,7 @@
+// TypeScript row types mirroring the Postgres schema (users, senders,
+// campaigns, scheduled_emails), plus the EmailJobData shape carried by every
+// BullMQ email job payload.
+
 export interface User {
   id: string;
   google_subject: string;

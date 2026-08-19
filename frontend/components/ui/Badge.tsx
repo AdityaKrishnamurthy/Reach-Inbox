@@ -1,3 +1,7 @@
+// Status badge components for individual emails (Scheduled, Sent, Failed,
+// Processing, Cancelled). EmailStatusBadge is the dispatcher used by list
+// and detail views to pick the right badge from a raw status string.
+
 import React from 'react';
 import { Clock, AlertCircle, RefreshCw, Ban } from 'lucide-react';
 

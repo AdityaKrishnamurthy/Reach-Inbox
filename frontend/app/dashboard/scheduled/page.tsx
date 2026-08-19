@@ -1,5 +1,9 @@
 'use client';
 
+// Scheduled emails view ("/dashboard/scheduled"). Lists campaign recipients
+// that are persisted and waiting on their delayed BullMQ job to fire, with
+// search, status filtering, and pagination driven by useEmailList.
+
 import React from 'react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { EmailList } from '@/components/email/EmailList';

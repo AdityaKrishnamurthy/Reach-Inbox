@@ -1,3 +1,8 @@
+// Redis connection factory used both by the app's own caching/rate-limiting
+// code and, via createRedisConnection, by BullMQ producers/workers. Disables
+// the ready-check and per-request retry cap since BullMQ requires those
+// settings to manage its own connection lifecycle.
+
 import Redis, { RedisOptions } from 'ioredis';
 import { config } from './env';
 

@@ -1,3 +1,9 @@
+// Thin boundary around Nodemailer/Ethereal SMTP so the rest of the app never
+// touches transport details directly. Caches one transporter per sender,
+// falls back to a shared auto-generated Ethereal test account when a sender
+// has no real credentials, and simulates delivery if outbound SMTP ports are
+// network-blocked so sends still succeed and produce a preview URL.
+
 import nodemailer, { Transporter } from 'nodemailer';
 import { config } from '../config/env';
 import { Sender } from '../types/db';

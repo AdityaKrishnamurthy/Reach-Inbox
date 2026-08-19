@@ -1,3 +1,8 @@
+// Client-only "starred" bookmarking for emails, persisted in localStorage
+// rather than the backend since it is a personal, browser-local UI
+// preference. Toggling a star fires a "reachinbox:star-changed" DOM event so
+// other mounted components (sidebar count, list rows) can react immediately.
+
 const STARRED_KEY = 'reachinbox_starred_emails';
 
 export const getStarredEmailIds = (): string[] => {

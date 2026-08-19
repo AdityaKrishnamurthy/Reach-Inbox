@@ -1,3 +1,9 @@
+// Data-access layer behind every email list/detail view: paginated, searched
+// queries for Scheduled/Sent/Archived/Trash, sidebar counts, and the
+// archive/unarchive/soft-delete/restore/permanent-delete state transitions.
+// Deleting or permanently deleting a still-pending email also cancels its
+// BullMQ job so it is never sent after being moved to trash.
+
 import { query } from '../db';
 import { cancelEmailJob } from '../queue/email.queue';
 

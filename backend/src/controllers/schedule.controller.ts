@@ -1,3 +1,9 @@
+// HTTP handlers for creating a new email campaign schedule and for
+// validating/counting recipients from raw uploaded text. Validates the
+// request body with Zod, sanitizes the HTML body to only the tags the
+// compose editor's toolbar can produce, then delegates persistence and
+// BullMQ enqueueing to ScheduleService.
+
 import { Request, Response } from 'express';
 import { z } from 'zod';
 import sanitizeHtml from 'sanitize-html';

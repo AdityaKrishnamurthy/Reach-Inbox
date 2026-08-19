@@ -1,5 +1,9 @@
 'use client';
 
+// Presentational list container used by every email view. Switches between
+// loading skeleton, error state, empty state, and the actual paginated rows
+// based on props passed down from each page's data-fetching hook.
+
 import React from 'react';
 import { EmailListRow, EmailRowData } from './EmailListRow';
 import { LoadingState } from '../ui/LoadingState';

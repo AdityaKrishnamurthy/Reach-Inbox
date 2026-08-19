@@ -1,3 +1,7 @@
+// Reusable empty-state placeholder shown when an email list has no results
+// (no data, or no matches for the current search/filter), with an optional
+// call-to-action link such as "Compose New Email".
+
 import React from 'react';
 import Link from 'next/link';
 import { Mail, Plus } from 'lucide-react';

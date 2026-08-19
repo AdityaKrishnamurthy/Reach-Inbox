@@ -1,3 +1,9 @@
+// Express middleware for session authentication. Reads the session token
+// from the reachinbox_token cookie (or a Bearer header as a fallback),
+// verifies it via AuthService, and attaches the resolved user to the
+// request. requireAuth rejects unauthenticated requests; optionalAuth lets
+// them through with req.user left unset.
+
 import { Request, Response, NextFunction } from 'express';
 import { AuthService, SessionUser } from '../services/auth.service';
 

@@ -1,3 +1,8 @@
+// Tailwind CSS configuration for the frontend app.
+// Scans the app/ and components/ directories for class names and extends the
+// default theme with the brand green palette used throughout the UI (buttons,
+// selected states, badges).
+
 import type { Config } from 'tailwindcss';
 
 const config: Config = {

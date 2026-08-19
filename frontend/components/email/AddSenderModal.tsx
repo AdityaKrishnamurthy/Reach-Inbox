@@ -1,5 +1,10 @@
 'use client';
 
+// Modal form for creating a new sender identity used when composing/
+// scheduling campaigns. Posts to /api/senders; SMTP credentials are optional
+// since senders can share the default Ethereal test inbox while still
+// tracking their own independent rate-limit and delay counters.
+
 import React, { useState } from 'react';
 import { X, Plus } from 'lucide-react';
 import { fetchApi } from '@/lib/api';

@@ -1,5 +1,9 @@
 'use client';
 
+// Button that kicks off the real Google OAuth flow by redirecting the
+// browser to the backend's /api/auth/google endpoint (unless a custom
+// onClick override is supplied).
+
 import React from 'react';
 
 interface GoogleLoginButtonProps {

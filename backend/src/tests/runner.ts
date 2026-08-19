@@ -1,3 +1,7 @@
+// CLI entry point that runs all lightweight backend test suites (recipient
+// parsing, rate-limit math) and prints a pass/fail summary, exiting non-zero
+// if anything failed. No external test framework dependency.
+
 import { runRecipientTests } from './recipient.test';
 import { runRateLimitTests } from './rate-limit.test';
 

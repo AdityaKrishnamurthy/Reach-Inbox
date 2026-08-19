@@ -1,3 +1,6 @@
+// Routes for Google OAuth login/callback and the current-session endpoints
+// (fetch logged-in user, logout). Mounted at /api/auth.
+
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
 import { requireAuth } from '../middleware/auth';

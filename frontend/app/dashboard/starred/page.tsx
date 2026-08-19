@@ -1,5 +1,10 @@
 'use client';
 
+// Starred emails view ("/dashboard/starred"). Reads the locally stored set
+// of starred email IDs, fetches those specific emails by ID, and applies
+// search/sort entirely client-side since the starred set is expected to be
+// small. Re-fetches whenever a star is toggled elsewhere in the app.
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { DashboardHeader, FilterOptions } from '@/components/layout/DashboardHeader';
 import { EmailList } from '@/components/email/EmailList';

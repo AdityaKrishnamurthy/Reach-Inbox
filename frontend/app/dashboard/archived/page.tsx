@@ -1,5 +1,9 @@
 'use client';
 
+// Archived emails view ("/dashboard/archived"). Lists emails the user has
+// archived from the detail view and lets them be moved back out of the
+// archive; also broadcasts a sidebar count refresh event after unarchiving.
+
 import React from 'react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { EmailList } from '@/components/email/EmailList';

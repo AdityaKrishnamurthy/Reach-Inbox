@@ -1,5 +1,9 @@
 'use client';
 
+// Trash view ("/dashboard/trash"). Lists deleted emails and offers restore
+// or permanent-delete actions; restoring also broadcasts a sidebar count
+// refresh event so the trash/other counts stay in sync.
+
 import React from 'react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { EmailList } from '@/components/email/EmailList';

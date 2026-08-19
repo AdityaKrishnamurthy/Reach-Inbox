@@ -1,5 +1,9 @@
 'use client';
 
+// Sent emails view ("/dashboard/sent"). Lists recipients whose worker job
+// has already run, showing both successfully sent and failed deliveries with
+// search, status filtering, and pagination via useEmailList.
+
 import React from 'react';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { EmailList } from '@/components/email/EmailList';

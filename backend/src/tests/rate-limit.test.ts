@@ -1,3 +1,7 @@
+// Unit tests for the pure time-math helpers behind rate limiting: computing
+// the delay until the next UTC hour boundary (used to retry sends that hit
+// the hourly cap) and computing remaining inter-email delay spacing.
+
 export function runRateLimitTests(): { name: string; passed: boolean; error?: string }[] {
   const results: { name: string; passed: boolean; error?: string }[] = [];
 

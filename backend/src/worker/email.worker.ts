@@ -1,3 +1,10 @@
+// BullMQ consumer that actually sends each scheduled email. Each job is
+// processed idempotently by re-checking the DB row's status before sending
+// (so a retried or duplicated job never double-sends), respects the
+// sender's rate limit/delay by rescheduling into the next hour window when
+// the hourly cap is hit, and updates both the email row and its parent
+// campaign's status after each send attempt.
+
 import { Worker, Job } from 'bullmq';
 import { createRedisConnection } from '../config/redis';
 import { EMAIL_QUEUE_NAME, enqueueEmailJob } from '../queue/email.queue';

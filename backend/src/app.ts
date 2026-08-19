@@ -1,3 +1,8 @@
+// Express application factory. Wires up CORS, JSON/cookie parsing, mounts
+// the auth/schedule/email/sender route groups, and adds a health-check
+// endpoint plus 404 and global error handlers. Separated from index.ts so
+// the app instance can be created independently for tests.
+
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';

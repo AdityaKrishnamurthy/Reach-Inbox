@@ -1,3 +1,7 @@
+// Unit tests for RecipientParser covering delimiter handling, dedup/
+// normalization, bracketed-name extraction, CSV header/email-column
+// detection, invalid-entry reporting, and comment-line skipping.
+
 import { RecipientParser } from '../utils/recipient.parser';
 
 export function runRecipientTests(): { name: string; passed: boolean; error?: string }[] {

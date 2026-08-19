@@ -1,3 +1,10 @@
+// Shared recipient-list parser used both by the recipient-upload/paste
+// preview endpoint and by actual campaign scheduling, so what the user sees
+// as "detected" recipients is exactly what gets scheduled. Handles plain
+// comma/semicolon/newline-separated addresses as well as CSV input with a
+// detected "Email" column, and de-duplicates/normalizes valid addresses
+// while reporting anything that doesn't parse as an invalid entry.
+
 export interface ParsedRecipients {
   validEmails: string[];
   invalidEntries: string[];

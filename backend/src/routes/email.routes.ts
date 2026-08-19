@@ -1,3 +1,7 @@
+// Routes for reading and managing scheduled email records: the
+// Scheduled/Sent/Archived/Trash list views, counts, batch lookup by ID, and
+// per-email archive/unarchive/restore/delete actions. Mounted at /api/emails.
+
 import { Router } from 'express';
 import { EmailController } from '../controllers/email.controller';
 import { requireAuth } from '../middleware/auth';

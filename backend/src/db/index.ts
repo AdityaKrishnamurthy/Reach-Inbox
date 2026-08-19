@@ -1,3 +1,8 @@
+// PostgreSQL connection pool and small query helpers used throughout the
+// backend: a logged `query` wrapper (warns on slow queries), a
+// `withTransaction` helper that commits/rolls back automatically, and a
+// `checkDbConnection` probe used by the health-check endpoint.
+
 import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { config } from '../config/env';
 

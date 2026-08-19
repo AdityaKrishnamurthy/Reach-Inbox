@@ -1,5 +1,10 @@
 'use client';
 
+// Shared layout for all /dashboard/* routes. Guards the dashboard behind
+// authentication (redirects to /login when there is no session), shows a
+// loading spinner while the session is being resolved, and renders the
+// persistent sidebar alongside the routed page content.
+
 import React, { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';

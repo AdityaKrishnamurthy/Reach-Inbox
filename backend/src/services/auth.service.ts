@@ -1,3 +1,7 @@
+// Implements the Google OAuth handshake (authorization URL, code-for-token
+// exchange, profile fetch), upserts the resulting user into Postgres, and
+// issues/verifies the JWT session token stored in the auth cookie.
+
 import { config } from '../config/env';
 import { query } from '../db';
 import { User } from '../types/db';

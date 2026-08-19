@@ -1,3 +1,11 @@
+// Core scheduling logic: turns a raw recipient list + campaign details into
+// a persisted campaign and one scheduled_emails row per recipient (written
+// in a single DB transaction), then enqueues a BullMQ delayed job for each
+// row. Uses a Redis-backed idempotency lock keyed on a client-supplied
+// requestId to guard against duplicate submissions, and provides
+// reconcileOrphanedJobs to re-enqueue any row that got persisted but never
+// received a job, so scheduled sends survive crashes and restarts.
+
 import { query, withTransaction } from '../db';
 import { redis } from '../config/redis';
 import { Campaign, ScheduledEmail, Sender, EmailJobData } from '../types/db';
