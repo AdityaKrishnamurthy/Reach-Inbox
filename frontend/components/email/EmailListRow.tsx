@@ -1,8 +1,13 @@
 'use client';
 
+// Single row in an email list (Scheduled/Sent/Archived/Trash/Starred).
+// Shows recipient, status badge, subject/preview with search-term
+// highlighting, and the context-appropriate row actions (star, unarchive,
+// restore, permanent delete) depending on which props the parent view passes.
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Star, ExternalLink, ArchiveRestore, Trash2, RotateCcw } from 'lucide-react';
+import { Star, ArchiveRestore, Trash2, RotateCcw } from 'lucide-react';
 import { EmailStatusBadge } from '../ui/Badge';
 import { isEmailStarred, toggleEmailStar } from '@/lib/starred';
 
@@ -84,10 +89,6 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({
     setIsStarred(newState);
   };
 
-  const handlePreviewClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   const handleUnarchiveClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -158,20 +159,6 @@ export const EmailListRow: React.FC<EmailListRowProps> = ({
 
       {/* Right Affordances */}
       <div className="flex items-center gap-3 z-10 pointer-events-auto pl-4">
-        {/* Ethereal Mail Preview Link */}
-        {email.etherealPreviewUrl && (
-          <a
-            href={email.etherealPreviewUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handlePreviewClick}
-            className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200 transition-colors"
-            title="Inspect in Ethereal Email"
-          >
-            <span>Preview</span>
-            <ExternalLink className="w-3 h-3" />
-          </a>
-        )}
 
         {/* Star Icon (hidden in Archived/Trash rows to keep those actions focused) */}
         {!onUnarchive && !onRestore && (

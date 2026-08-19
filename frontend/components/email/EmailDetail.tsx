@@ -1,11 +1,15 @@
 'use client';
 
+// Full detail view for a single scheduled/sent email. Renders sender/
+// recipient metadata, the rendered email body, and per-email campaign stats
+// (delay, hourly limit, attempts), plus star/archive/delete/restore actions
+// that call the backend and then navigate back to the originating list.
+
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   Star,
-  ExternalLink,
   Mail,
   ChevronDown,
   Archive,
@@ -183,19 +187,6 @@ export const EmailDetail: React.FC<EmailDetailProps> = ({ email }) => {
             scheduledAt={email.scheduledAt}
             failureReason={email.failureReason}
           />
-
-          {email.etherealPreviewUrl && (
-            <a
-              href={email.etherealPreviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 text-xs font-medium rounded-md border border-emerald-200 transition-colors"
-              title="Inspect Email"
-            >
-              <span>Preview</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          )}
 
           {/* Star Action (hidden for trashed emails, matching the list view) */}
           {!email.isDeleted && (
