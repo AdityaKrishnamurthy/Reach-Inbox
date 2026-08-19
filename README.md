@@ -176,20 +176,26 @@ Secrets (database URL, Redis URL, OAuth credentials, session secret) live in eac
 
 ## 5. Implemented Features Map
 
-| Module | Assignment Requirement | Implementation Details |
-|---|---|---|
-| Frontend | Google Login UI | Figma-matched login screen with Google OAuth button and error toasts (`/login`) |
-| Frontend | Navigation & Dashboard | Sidebar with real-time Scheduled/Sent counters, user avatar card, and primary green branding (`/dashboard/*`) |
-| Frontend | Scheduled & Sent Tables | Status badges, Ethereal preview links, search highlighting, and star affordances |
-| Frontend | Compose & Send Later | Rich-text editor toolbar, sender dropdown, delay & hourly limit controls, drag-and-drop upload, and Send Later popover with presets |
-| Frontend | Recipient Upload | CSV and TXT file uploader with regex parsing, deduplication, and detected-count badges |
-| Frontend | Search & Filter Popover | Debounced multi-field search (recipient, subject, body, sender) with an interactive status and sorting filter popover |
-| Frontend | Email Detail View | Gmail-style typography, full subject display, campaign parameters, and smart back navigation |
-| Backend | Google OAuth Login | Real OAuth 2.0 exchange, user profile upsert, and secure HttpOnly JWT session cookies (`/api/auth/*`) |
-| Backend | Email Scheduler | Campaign persistence in PostgreSQL, BullMQ delayed job enqueuing without cron (`/api/schedules`) |
-| Backend | Worker & Throttling | Configurable concurrency, inter-email delay spacing, and Redis atomic hourly rate limiting |
-| Backend | Email Sending | Nodemailer integration with Ethereal SMTP, preview URL generation, and network fallback resilience |
-| Backend | API Endpoints | REST endpoints for scheduled list, sent list, counters, email detail, and recipient parsing |
+### Backend
+
+| Requirement | Implementation |
+|---|---|
+| Scheduler | `POST /api/schedules` validates the request, persists the campaign and every recipient row in PostgreSQL, then enqueues one **BullMQ delayed job** per email (`delay = scheduledAt - now`) — no cron, no polling loop |
+| Persistence | Campaign and recipient state is written to PostgreSQL *before* the job is enqueued, so it survives a restart even if the enqueue step never runs; a boot-time reconciliation pass re-enqueues any row left without a matching job |
+| Rate Limiting | Redis-backed hourly counters keyed by `sender + hour window`, enforced with an atomic Lua script so concurrent workers can't over-count; jobs that would exceed the limit roll into the next hour instead of failing |
+| Concurrency | BullMQ worker concurrency is configurable via `WORKER_CONCURRENCY`, with a minimum inter-email delay (`DEFAULT_DELAY_MS`) enforced per sender to mimic provider throttling |
+| Email Sending | Nodemailer over Ethereal SMTP, idempotent per job ID so retries can't double-send, with preview-link generation and multi-sender support |
+| Auth | Real Google OAuth 2.0 exchange, user profile upsert, and secure HttpOnly JWT session cookies (`/api/auth/*`) |
+
+### Frontend
+
+| Requirement | Implementation |
+|---|---|
+| Login | Figma-matched login screen with Google OAuth button, avatar/name/email in the header, and a logout option (`/login`) |
+| Dashboard | Sidebar with Scheduled/Sent/Archived/Trash/Starred sections and live counters, primary "Compose New Email" action (`/dashboard/*`) |
+| Compose | Subject/body editor, CSV/TXT recipient upload with detected-address count, start time, delay-between-emails and hourly-limit controls, Send Later popover |
+| Tables | Scheduled and Sent tables/lists with email, subject, time, and status columns, plus loading and empty states |
+| Other | Search across recipient/subject/body/sender, per-email detail view, and Archive/Trash actions |
 
 ---
 
