@@ -1,5 +1,11 @@
 'use client';
 
+// Persistent dashboard sidebar: brand logo, account profile menu with
+// logout, compose shortcut, and the main navigation (Scheduled/Sent/Starred/
+// Archived/Trash) with live item counts. Counts poll the backend on an
+// interval and also refresh on custom "reachinbox:refresh-counts" and
+// "reachinbox:star-changed" events fired elsewhere in the app.
+
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -72,12 +78,12 @@ export const Sidebar: React.FC = () => {
         <Link
           href="/dashboard"
           className="flex items-center gap-2.5 px-2 hover:opacity-90 transition-opacity cursor-pointer"
-          title="ReachInbox Home"
+          title="Reach-Inbox Home"
         >
           <div className="w-8 h-8 bg-[#00A36C] text-white rounded-lg flex items-center justify-center font-bold text-base tracking-tight shadow-sm">
             R
           </div>
-          <span className="text-lg font-semibold tracking-tight text-gray-900">ReachInbox</span>
+          <span className="text-lg font-semibold tracking-tight text-gray-900">Reach-Inbox</span>
         </Link>
 
         {/* Profile Card */}

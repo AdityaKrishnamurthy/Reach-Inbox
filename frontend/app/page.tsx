@@ -1,3 +1,7 @@
+// Root landing page ("/"). A simple splash screen with links into the login
+// flow and directly into the dashboard, used as the entry point before a
+// user is authenticated.
+
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -9,7 +13,7 @@ export default function HomePage() {
             R
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">ReachInbox Scheduler</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Reach-Inbox Scheduler</h1>
         <p className="text-sm text-gray-500 mb-8">
           Durable email scheduling, Redis BullMQ queues, and analytics.
         </p>

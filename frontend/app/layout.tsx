@@ -1,9 +1,13 @@
+// Root layout for the Next.js App Router. Sets global page metadata, loads
+// the global stylesheet, and wraps every route in the shared Providers tree
+// (e.g. auth context) so app-wide state is available on all pages.
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/layout/Providers';
 
 export const metadata: Metadata = {
-  title: 'ReachInbox - Email Scheduler',
+  title: 'Reach-Inbox',
   description: 'Durable full-stack cold email scheduler and dashboard',
   icons: {
     icon: '/icon.svg',
