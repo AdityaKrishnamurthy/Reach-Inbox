@@ -321,14 +321,6 @@ export const EmailComposer: React.FC = () => {
       setErrorMessage(`Hourly limit must be between 1 and ${MAX_HOURLY_LIMIT}.`);
       return;
     }
-    // Allow a small tolerance since the "Now" preset captures a timestamp a few
-    // seconds before the actual submit; reject anything genuinely in the past.
-    const PAST_TOLERANCE_MS = 15000;
-    if (scheduledDate.getTime() < Date.now() - PAST_TOLERANCE_MS) {
-      setErrorMessage('The scheduled send time is in the past. Please pick a current or future time.');
-      return;
-    }
-
     setIsSubmitting(true);
 
     try {
@@ -483,12 +475,6 @@ export const EmailComposer: React.FC = () => {
           </div>
         </div>
 
-        <AddSenderModal
-          isOpen={isAddSenderOpen}
-          onClose={() => setIsAddSenderOpen(false)}
-          onCreated={handleSenderCreated}
-        />
-
         {/* To Row with Chips, Drag-and-Drop and Upload Button */}
         <div
           onDragOver={(e) => {
@@ -585,6 +571,12 @@ export const EmailComposer: React.FC = () => {
           />
         </div>
       </form>
+
+      <AddSenderModal
+        isOpen={isAddSenderOpen}
+        onClose={() => setIsAddSenderOpen(false)}
+        onCreated={handleSenderCreated}
+      />
     </div>
   );
 };
